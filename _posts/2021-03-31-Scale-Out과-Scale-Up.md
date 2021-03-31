@@ -36,5 +36,5 @@ tags:
 
 ## References
 
-- https://m.blog.naver.com/islove8587/220548900044
-- https://idchowto.com/?p=29915
+- <https://m.blog.naver.com/islove8587/220548900044>
+- <https://idchowto.com/?p=29915>
