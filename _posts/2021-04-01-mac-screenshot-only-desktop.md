@@ -1,4 +1,5 @@
 ---
+title: Mac에서 스크린샷 바탕화면만 될때
 categories:
   - Mac
 tags:

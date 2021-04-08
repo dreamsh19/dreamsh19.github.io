@@ -1,4 +1,5 @@
 ---
+title: 10장 객체 리터럴
 categories:
   - Javascript
 tags:

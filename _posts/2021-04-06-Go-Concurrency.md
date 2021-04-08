@@ -1,4 +1,5 @@
 ---
+title: Go Concurrency
 categories:
   - Go
 tags:

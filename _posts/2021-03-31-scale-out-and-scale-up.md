@@ -1,4 +1,5 @@
 ---
+title: Scale Out과 Scale Up
 categories:
   - Server
 tags:

@@ -1,4 +1,5 @@
 ---
+title: Go Method & Interface
 categories:
   - Go
 tags:
