@@ -4,10 +4,11 @@ categories:
 tags:
   - SSL
   - HTTPS
-  - dev
+  - local
 published: true
 created: 2024-03-31 (일) 03:39:06
-modified: 2024-03-31 (일) 23:57:29
+modified: 2024-04-01 (월) 03:30:02
+title: 로컬에-HTTPS-웹서버를-도메인과-함께-띄워보자(feat. mkcert)
 ---
 
 ## 이슈
@@ -39,7 +40,7 @@ python3 -m http.server 8000 # python3 기준
 python -m SimpleHTTPServer 8000 # python2 기준
 ```
 
-위 명령어를 실행하게 되면, 해당 명령이 실행된 디렉토리의 파일들을 http://localhost:8000 에 접근하여 브라우저에서 볼 수 있다.
+위 명령어를 실행하게 되면, 해당 명령이 실행된 디렉토리의 파일들을 [http://localhost:8000](http://localhost:8000) 에 접근하여 브라우저에서 볼 수 있다.
 하지만, http로 서비스되는 매체 사이트는 이제 거의 없다고 봐야하기 때문에 같은 기능을 하는 https 매체 사이트가 필요했다.
 
 ## SSL 인증서 발급
@@ -62,7 +63,7 @@ openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365
 
 ### mkcert
 
-이걸 해주는 오픈소스 프로젝트가 바로 mkcert 이다.
+이걸 해주는 오픈소스 프로젝트가 바로 [mkcert](https://github.com/FiloSottile/mkcert) 이다.
 mkcert는 프로젝트에 적혀있는 것처럼 "locally trusted development certificates", 즉 로컬 한정 공인된 인증서를 만들어주는 오픈소스이다.
 > A simple zero-config tool to make locally trusted development certificates with any names you'd like.
 
@@ -75,7 +76,7 @@ brew install mkcert
 
 설치 후에 아래와 같은 명령어를 입력하여 로컬에 CA로 mkcert를 등록해준다.
 
-```
+```bash
 mkcert -install
 ```
 
@@ -92,17 +93,26 @@ mkcert -install
 mkcert -key-file key.pem -cert-file cert.pem localhost my-little-domain.com
 ```
 
-- private key 파일(`key.pem`)과 인증서 파일(`cert.pem`) 경로 및 파일명은 후에 웹서버를 구동할 때 필요하므로, 기억해두어야한다.
+위 명령어를 실행 후에 명령어를 실행한 디렉토리를 확인해보면, 아래와 같이 private key 파일(`key.pem`)과 인증서 파일(`cert.pem`)이 생성되었다.
+```bash
+[user@local]  ~/local-https-server  ls -al
+total 16
+drwxr-xr-x   4 user  root   128  3 31 23:52 .
+drwxr-x---+ 35 user  root  1120  3 31 23:52 ..
+-rw-r--r--   1 user  root  1566  3 31 23:51 cert.pem
+-rw-------   1 user  root  1708  3 31 23:51 key.pem
+```
 
-private key와 인증서가 준비되었으니 이제 HTTPS 웹서버를 구동해보자.
+이때 key 파일 및 인증서 파일의 경로 및 파일명은 이후에 웹서버를 구동할 때 필요하므로, 기억해두어야한다.
+인증서가 준비되었으니 이제 HTTPS 웹서버를 구동해보자.
 
 ## 웹서버 구동
 
 웹서버를 구동하는 방법은 apache, nginx 등등 정말 다양하다.
 그러나 apache, nginx 등을 사용하는 건 일단 설치가 필요하고, 설치 후에도 conf 설정 방법에 대한 이해도 필요하다.
-하지만 지금 당장 필요한건 단순히 로컬의 정적인 파일들을 브라우저에서 보기만 하면 된다.
-그리고 다른 로컬 환경에서도 별도 의존성 없이 실행할 수 있는 방법 좋을 것이다.
-그래서 위와 같은 요구사항을 위해 macOS에서 별도 의존성 없이 실행할수 있는 python `http.server` 사용하기로 했다.
+하지만 지금 당장 필요한건 단순히 로컬의 정적인 파일들을 서빙하기만 하면 된다.
+그리고 다른 로컬 환경에서도 별도 의존성 없이 실행할 수 있는 방법이 좋을 것이다.
+그래서 위와 같은 요구사항을 위해 macOS에서 별도 의존성 없이 실행할수 있는 python `http.server`를 사용하기로 했다.
 
 아래와 같은 간단한 파이썬 코드(web_server.py)를 작성하고,
 
@@ -123,25 +133,27 @@ httpd.socket = ssl.wrap_socket(httpd.socket, certfile=ssl_certificate, keyfile=s
 print("Server started at https://localhost:443")
 httpd.serve_forever()
 ```
-(위 샘플 코드는 key 파일과 cert 파일과 같은 디렉토리에 작성하였으므로, 상대경로로만 파일들의 경로를 명시하였고, 별도 디렉토리에 작성하는 경우 그에 해당하는 절대 또는 상대 경로로 입력해주어야한다. )
+(위 코드는 key 파일과 cert 파일과 같은 디렉토리에 작성하였으므로, 상대경로로만 파일들의 경로를 명시하였고, 인증서 파일과 별도 디렉토리에 작성하는 경우 그에 해당하는 절대 또는 상대 경로로 입력해주어야한다. )
 
 아래 명령어를 통해 간단하게 localhost 443 포트에 HTTPS 웹서버를 구동할 수 있다.
 ```bash
 sudo python3 web_server.py
 ```
 
-이때, sudo가 필요한 이유는, HTTPS용 포트인 443 포트는 1024 이하의 [Privileged Ports](https://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html) 이기 때문에 루트 권한이 필요하다 .
+이때, sudo가 필요한 이유는, HTTPS용 포트인 443 포트는 1024 미만의 [Privileged Ports](https://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html) 이기 때문에 루트 권한이 필요하다.
 
-이렇게 끝인줄로만 알았는데... 다른 pc에서 동일하게 실행하다가
-`AttributeError: module 'ssl' has no attribute 'wrap_socket'` 에러와 함께 실패하는 것을 발견했다.
+### 파이썬 버전에 따른 차이
 
-그래서 찾아보니, ssl 패키지의 socket을 생성하는 `wrap_socket()` 함수에 대한 API가 python 3.7 버전에서 deprecate 되었고, python 3.12 버전에서는 완전히 삭제되었다. (정확히는 사용 방법이 바뀐 것이다.)
+이렇게 끝인줄로만 알았는데...(그래서 사실 간단하다고 생각하고 있었는데..)
+다른 pc에서 동일하게 환경을 구성하다가 `AttributeError: module 'ssl' has no attribute 'wrap_socket'` 에러와 함께 위 코드가 실패하는 것을 발견했다.
+
+그래서 찾아보니, 파이썬 ssl 패키지의 socket을 생성하는 `wrap_socket()` 함수가 python 3.7 버전에서 deprecate 되었고, python 3.12 버전에서는 완전히 삭제되었다. (정확히는 사용 방법이 바뀐 것이다.)
 
 >  - Remove the `ssl.wrap_socket()` function, deprecated in Python 3.7: instead, create a [`ssl.SSLContext`](https://docs.python.org/3.12/library/ssl.html#ssl.SSLContext "ssl.SSLContext") object and call its [`ssl.SSLContext.wrap_socket`](https://docs.python.org/3.12/library/ssl.html#ssl.SSLContext.wrap_socket "ssl.SSLContext.wrap_socket") method. Any package that still uses `ssl.wrap_socket()` is broken and insecure. The function neither sends a SNI TLS extension nor validates server hostname. Code is subject to [CWE-295](https://cwe.mitre.org/data/definitions/295.html): Improper Certificate Validation. (Contributed by Victor Stinner in [gh-94199](https://github.com/python/cpython/issues/94199).)
 
 기존에 테스트하던 pc 환경은 python 3.6 버전이어서 위 코드가 문제 없이 동작했던 것이고, 새로운 환경은 python 3.12 버전이어서 에러와 함께 실패한 것이다.
 
-그래서 파이썬 버전에 따른 분기처리를 추가하여 수정한 최종 코드는 아래와 같다.
+그래서 파이썬 버전에 따른 분기처리를 추가하였고, 수정한 최종 코드는 아래와 같다.
 
 ```python
 # web_server.py
@@ -175,29 +187,46 @@ print("Server started at https://localhost:443")
 httpd.serve_forever()
 ```
 
-그래서 위 코드는 파이썬 3점대 버전에서 마이너 버전과 무관하게 동작하게 되고
-다시 아래와 같은 명령어를 통해 웹 서버를 구동할 수 있고,
+그래서 위 코드는 파이썬 3점대 버전에서 마이너 버전과 무관하게 동작하게 된다.
+
+어쨌든 원래 목적으로 돌아와, 다시 아래와 같은 명령어를 통해 웹 서버를 구동할 수 있고,
 ```bash
 sudo python3 web_server.py
 ```
-https://localhost 에 접근하여 브라우저에서 해당 디렉토리의 파일들을 볼 수 있다.
+
+[https://localhost](https://localhost) 에 접근하여 브라우저에서 해당 디렉토리의 파일들을 볼 수 있다.
 
 ![image](https://github.com/dreamsh19/dreamsh19.github.io/assets/47855638/30f15903-1f85-4c98-a7d7-c72a1ec473c1)
 
 ## 호스트 파일(/etc/hosts) 수정
 
-- 사실 위의 과정까지만 하면 필요한 것은 모두 된 것이다. localhost 라는 도메인의 HTTPS 웹서버를 띄운 셈이기 때문이다.
-- 하지만 좀 더 매체 환경과 비슷하게 만들어주기 위해 localhost 외의 도메인을 localhost에 바인딩하여, localhost 외의 도메인(여기서는 my-little-domain.com)으로 접근할 수 있도록 변경해보자.
-- 이를 위해서 로컬 DNS에 해당하는 호스트 파일 /etc/hosts를 수정한다.
+사실 위의 과정까지만 하면 필요한 것은 모두 된 것이다. localhost 라는 도메인의 HTTPS 웹서버를 띄운 셈이기 때문이다.
+하지만 좀 더 매체 환경과 비슷하게 만들어주기 위해 localhost 의 도메인(이 글에서는 `my-little-domain.com`)을 통해 접근할 수 있도록 만들어보자.
+이를 위해서 로컬 DNS에 해당하는 호스트 파일 `/etc/hosts`(macOS 및 linux 기준)에 `my-little-domain.com`을 로컬호스트에 바인딩하기 위한 설정을 추가하자.
 
 ```bash
 echo '127.0.0.1 my-little-domain.com' | sudo tee -a /etc/hosts
 ```
 
-- 이때 /etc/hosts 파일의 권한 문제로, output redirection(>>)으로 수정할 수 없기 때문에 `sudo tee -a` 로 추가해주어야 한다.
-- 혹은 직접 파일을 에디터로 열어 수정해도 된다
+- 이때 `/etc/hosts` 파일 수정은 root 권한이 필요하므로, output redirection(>>)으로 수정할 수 없고, `sudo tee -a` 로 추가해주어야 한다.
+- 혹은 직접 root 권한으로 파일을 에디터로 열어 수정해도 된다
 
-이제 https://my-little-domain.com/ 에 접근하여 로컬 파일들을 볼 수 있다!
+## 결과 확인
+
+이제 [https://my-little-domain.com](https://my-little-domain.com)에 접근하여 브라우저에서 로컬 파일들을 볼 수 있다! 그리고 브라우저에서도 더 이상 인증서 관련 warning을 띄우지 않고 인정(?)해준다.
+
+![image](https://github.com/dreamsh19/dreamsh19.github.io/assets/47855638/bedd4879-7363-4d56-84bc-001a48f238ee)
+
+![image](https://github.com/dreamsh19/dreamsh19.github.io/assets/47855638/5e9e8eaa-5087-499a-9f55-6e0bd6f746dd)
+
+사실 이때부터는 브라우저 입장에서는 실제 매체 사이트랑 구별을 할 수가 없게 된다.
+브라우저는 여느 사이트와 동일하게 [https://my-little-domain.com](https://my-little-domain.com) 에 바인딩된 서버에 조회하여 결과를 가져올 뿐이기 때문에, 그 서버가 어떻게 구성되었는지는 알 길이 없고 알 필요도 없다.
+
+이로써 매체 사이트를 로컬에 mocking하여 로컬 파일 기반으로 자유롭게 마크업 테스트를 할 수 있는 환경을 만들어 보았다. 
+
+## 주의사항
+
+당연하게도, mkcert를 통해 발급한 인증서는 로컬에서만 유효한 인증서이므로, production 환경에서는 CA를 통해 발급받은 인증서를 사용해야한다.
 
 ## References
 - [GitHub - FiloSottile/mkcert: A simple zero-config tool to make locally trusted development certificates with any names you'd like.](https://github.com/FiloSottile/mkcert)
