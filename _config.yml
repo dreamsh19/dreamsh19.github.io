@@ -19,7 +19,7 @@ locale                   : "en-US"
 title                    : "기술을 기술하다"
 title_separator          : "-"
 subtitle                 : # site tagline that appears below site title in masthead
-name                     : "Rookie 개발자"
+name                     : "서버 개발자"
 description              : "ㅎㅅㅎ의 기술 블로그"
 url                      : "https://dreamsh19.github.io"
 baseurl                  : # the subpath of your site, e.g. "/blog"
@@ -95,13 +95,13 @@ analytics:
 author:
   name             : "ㅎㅅㅎ"
   avatar           : # path of avatar image, e.g. "/assets/images/bio-photo.jpg"
-  bio              : "Rookie 개발자"
-  location         : "NHN, Pangyo, South Korea"
-  email            : "dreamsh19@naver.com"
+  bio              : "Backend Dev"
+  location         : "South Korea"
+  email            : "dreamsh19@gmail.com"
   links:
     - label: "Email"
       icon: "fas fa-fw fa-envelope-square"
-      # url: mailto:dreamsh19@naver.com
+      # url: mailto:dreamsh19@gmail.com
     - label: "Website"
       icon: "fas fa-fw fa-link"
       # url: "https://your-website.com"
@@ -114,6 +114,9 @@ author:
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
       url: "https://github.com/dreamsh19"
+    - label: "LinkedIn"
+      icon: "fab fa-fw fa-linkedin"
+      url: "https://www.linkedin.com/in/dreamsh19"
     - label: "Instagram"
       icon: "fab fa-fw fa-instagram"
       # url: "https://instagram.com/"
@@ -139,6 +142,10 @@ footer:
     - label: "Instagram"
       icon: "fab fa-fw fa-instagram"
       # url:
+    - label: "LinkedIn"
+      icon: "fab fa-fw fa-linkedin"
+      url: "https://www.linkedin.com/in/dreamsh19"
+
 
 
 # Reading Files
