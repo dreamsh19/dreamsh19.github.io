@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.21.0 by Michael Rose
+  Copyright 2013-2020 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+--><html lang="en" class="no-js">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>Mac에서 스크린샷 바탕화면만 될때 - 기술을 기술하다</title>
+<meta name="description" content="이슈">
+
+
+  <meta name="author" content="ㅎㅅㅎ">
+  
+  <meta property="article:author" content="ㅎㅅㅎ">
+  
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="기술을 기술하다">
+<meta property="og:title" content="Mac에서 스크린샷 바탕화면만 될때">
+<meta property="og:url" content="https://dreamsh19.github.io/mac/Mac%EC%97%90%EC%84%9C-%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7-%EB%B0%94%ED%83%95%ED%99%94%EB%A9%B4%EB%A7%8C-%EB%90%A0%EB%95%8C/">
+
+
+  <meta property="og:description" content="이슈">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2021-04-01T00:00:00+09:00">
+
+
+
+
+
+  
+
+  
+
+
+<link rel="canonical" href="https://dreamsh19.github.io/mac/Mac%EC%97%90%EC%84%9C-%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7-%EB%B0%94%ED%83%95%ED%99%94%EB%A9%B4%EB%A7%8C-%EB%90%A0%EB%95%8C/">
+
+
+
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    
+      "@type": "Person",
+      "name": "서버 개발자",
+      "url": "https://dreamsh19.github.io/"
+    
+  }
+</script>
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+<link href="/feed.xml" type="application/atom+xml" rel="alternate" title="기술을 기술하다 Feed">
+
+<!-- https://t.co/dKP3o1e -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script>
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<!--[if IE]>
+  <style>
+    /* old IE unsupported flexbox fixes */
+    .greedy-nav .site-title {
+      padding-right: 3em;
+    }
+    .greedy-nav button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+    }
+  </style>
+<![endif]-->
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single">
+    <nav class="skip-links">
+  <h2 class="screen-reader-text">Skip links</h2>
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    <!--[if lt IE 9]>
+<div class="notice--danger align-center" style="margin: 0;">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience.</div>
+<![endif]-->
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          기술을 기술하다
+          
+        </a>
+        <ul class="visible-links">
+<li class="masthead__menu-item">
+              <a href="/">Home</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/categories/">Categories</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/tags/">Tags</a>
+            </li>
+</ul>
+        
+        <button class="search__toggle" type="button">
+          <span class="visually-hidden">Toggle search</span>
+          <svg class="icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 15.99 16">
+            <path d="M15.5,13.12L13.19,10.8a1.69,1.69,0,0,0-1.28-.55l-0.06-.06A6.5,6.5,0,0,0,5.77,0,6.5,6.5,0,0,0,2.46,11.59a6.47,6.47,0,0,0,7.74.26l0.05,0.05a1.65,1.65,0,0,0,.5,1.24l2.38,2.38A1.68,1.68,0,0,0,15.5,13.12ZM6.4,2A4.41,4.41,0,1,1,2,6.4,4.43,4.43,0,0,1,6.4,2Z" transform="translate(-.01)"></path>
+          </svg>
+        </button>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+
+
+<div itemscope itemtype="https://schema.org/Person">
+
+  
+
+  <div class="author__content">
+    
+      <h3 class="author__name" itemprop="name">ㅎㅅㅎ</h3>
+    
+    
+      <div class="author__bio" itemprop="description">
+        <p>Backend Dev</p>
+
+      </div>
+    
+  </div>
+
+  <div class="author__urls-wrapper">
+    <button class="btn btn--inverse">Follow</button>
+    <ul class="author__urls social-icons">
+      
+        <li itemprop="homeLocation" itemscope itemtype="https://schema.org/Place">
+          <i class="fas fa-fw fa-map-marker-alt" aria-hidden="true"></i> <span itemprop="name">South Korea</span>
+        </li>
+      
+
+      
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+            <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i><span class="label">GitHub</span></a></li>
+          
+        
+          
+            <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span class="label">LinkedIn</span></a></li>
+          
+        
+          
+        
+      
+
+      
+
+      
+        <li>
+          <a href="mailto:dreamsh19@gmail.com">
+            <meta itemprop="email" content="dreamsh19@gmail.com">
+            <i class="fas fa-fw fa-envelope-square" aria-hidden="true"></i><span class="label">Email</span>
+          </a>
+        </li>
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      <!--
+  <li>
+    <a href="http://link-to-whatever-social-network.com/user/" itemprop="sameAs" rel="nofollow noopener noreferrer">
+      <i class="fas fa-fw" aria-hidden="true"></i> Custom Social Profile Link
+    </a>
+  </li>
+-->
+    </ul>
+  </div>
+</div>
+
+  
+  <a href="https://hits.seeyoufarm.com" style="display: none;">
+    <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fdreamsh19.github.io&count_bg=%2348AFB3&title_bg=%237D8B8E&icon=&icon_color=%23360E0E&title=hits&edge_flat=false">
+  </a>  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="Mac에서 스크린샷 바탕화면만 될때">
+    <meta itemprop="description" content="이슈">
+    <meta itemprop="datePublished" content="2021-04-01T00:00:00+09:00">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">Mac에서 스크린샷 바탕화면만 될때
+</h1>
+          
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right sticky">
+            <nav class="toc">
+              <header><h4 class="nav__title">
+<i class="fas fa-file-alt"></i> On this page</h4></header>
+              <ul class="toc__menu">
+<li><a href="#%EC%9D%B4%EC%8A%88">이슈</a></li>
+<li><a href="#%EC%9B%90%EC%9D%B8">원인</a></li>
+<li><a href="#%ED%95%B4%EA%B2%B0">해결</a></li>
+<li><a href="#%EC%B6%94%EA%B0%80">추가</a></li>
+<li><a href="#references">References</a></li>
+</ul>
+
+            </nav>
+          </aside>
+        
+        <h2 id="이슈">이슈</h2>
+
+<p>새로 산 로지텍 M590 마우스를 맥북에서 쓰기 위해 <a href="https://www.logitech.com/ko-kr/product/options">logi Options</a> (로지텍 마우스의 버튼 커스터마이징 및 logitech flow 등의 설정을 하게 해주는 프로그램. 제공하는 기능에 대한 자세한 사항은 링크 참조)를 이용해 버튼을 커스터마이징하던 중 스크린샷도 가능하다는 걸 깨달아서 적용하려고 했다. 개인적으로 맥북의 스크린샷 단축키가 Cmd+Shift+3(또는 4)와 같은 식이어서 단축키가 직관적이지 않고, 심지어 클립보드에 복사하려면 Control까지 총 4개의 손가락을 이용해야해서 불편하다고 생각하고 있었다. 그래서 logi Options에서 버튼 하나에 스크린샷을 지정하고 실행을 해보니 스크린샷은 잘되는데 이런식으로 바탕화면만 캡처가 되었다.</p>
+
+<p><img src="https://raw.githubusercontent.com/dreamsh19/dreamsh19.github.io/master/assets/image/image-20210408011122677.png" alt="image-20210408011122677"></p>
+
+<h2 id="원인">원인</h2>
+
+<p>당연히 logi Options의 버그라고 생각하고 구글링을 했지만 아무리 찾아도 안나왔다. 그러던 중 logi Options가 아니라 에버노트에서 캡처했을 때 위와 같이 바탕화면만 캡처가 된다는 글을 발견했고, 해결법도 그곳에서 찾았다. 원인은 바로 <strong>애플리케이션의 화면 기록 권한이 없었기 때문</strong>이다.</p>
+
+<p>Mac은 스크린샷을 찍을 때 화면 기록 권한을 체크한다. 우리가 단축키나 스크린샷 앱으로 스크린샷을 찍을 때는 Mac 자체에서 화면 기록을 하는것이니 의도대로 스크린샷이 된다. 그러나 애플리케이션(나의 경우 logi Options)에서 스크린샷을 찍기 위해서는 화면 기록을 위한 권한이 필요하고 그 권한이 없으면 위 사진처럼 아무것도 없는 바탕화면만 캡처가 된다.</p>
+
+<h2 id="해결">해결</h2>
+
+<p>스크린샷을 허용하려는 애플리케이션의 화면 기록 권한을 허용해주면 된다.</p>
+
+<p>Mac의 시스템 환경설정 - 보안 및 개인 정보 보호에 들어가서</p>
+
+<p>개인 정보 보호 탭 - 화면 기록에 들어가 원하는 애플리케이션에 체크표시를 해준다.</p>
+
+<p><img src="https://raw.githubusercontent.com/dreamsh19/dreamsh19.github.io/master/assets/image/image-20210408014039116.png" alt="image-20210408014039116"></p>
+
+<p>다시 해보니 최초 시도 시에 애플리케이션의 화면 기록을 허용하겠냐는 문구를 띄워주는데 왜 처음엔 그 문구가 안떴는지 모르겠다.</p>
+
+<h2 id="추가">추가</h2>
+
+<p>보통 스크린샷은 찍은 후 한번 활용하고 더 이상 활용하지 않기 마련이다. 애플 단축어 예시 중에 괜히 Share screenshot and delete가 있는게 아니다. 그런데 Mac은 스크린샷을 무조건 파일로 저장해서 번거로웠다. 그래서 Control키까지 같이 누르면 클립보드에만 저장이 된다는 걸 알아내서 그렇게 쓰고 있었는데 이것도 손가락을 4개나 써야해서 여전히 불편했다. 그런데 이번에 새로운 걸 알게되었다.</p>
+
+<p>Mac 스크린샷 설정에서 스크린샷을 찍었을 때 저장할 위치를 지정할 수 있다. 그런데 그 위치 중에 클립보드도 가능하기 때문에 캡처해서 바로 붙여넣기만으로 캡처본을 활용할 수 있다. Spotlight에 스크린샷을 치면 해당 앱을 들어갈 수 있고, 거기서 옵션에서 저장 위치를 지정할 수 있다. 사실 위에 기술한 화면 기록 권한에 대한 내용을 안 것보다 스크린샷을 바로 클립보드에 저장해주는 이 기능을 알게 된 게 훨씬 유용한 것 같다.</p>
+
+<p><img src="https://raw.githubusercontent.com/dreamsh19/dreamsh19.github.io/master/assets/image/image-20210408014616777.png" alt="image-20210408014616777"></p>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li><a href="https://discussion.evernote.com/forums/topic/122038-screen-snap-capture-not-working/">https://discussion.evernote.com/forums/topic/122038-screen-snap-capture-not-working/</a></li>
+</ul>
+
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/tags/#logi-options" class="page__taxonomy-item" rel="tag">Logi Options</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#mac" class="page__taxonomy-item" rel="tag">Mac</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#screenshot" class="page__taxonomy-item" rel="tag">ScreenShot</a>
+    
+    </span>
+  </p>
+
+
+
+
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-folder-open" aria-hidden="true"></i> Categories: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/categories/#mac" class="page__taxonomy-item" rel="tag">Mac</a>
+    
+    </span>
+  </p>
+
+
+        
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time datetime="2021-04-01T00:00:00+09:00">April 1, 2021</time></p>
+
+
+      </footer>
+
+      <section class="page__share">
+  
+    <h4 class="page__share-title">Share on</h4>
+  
+
+  <a href="https://twitter.com/intent/tweet?text=Mac%EC%97%90%EC%84%9C+%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7+%EB%B0%94%ED%83%95%ED%99%94%EB%A9%B4%EB%A7%8C+%EB%90%A0%EB%95%8C%20https%3A%2F%2Fdreamsh19.github.io%2Fmac%2FMac%25EC%2597%2590%25EC%2584%259C-%25EC%258A%25A4%25ED%2581%25AC%25EB%25A6%25B0%25EC%2583%25B7-%25EB%25B0%2594%25ED%2583%2595%25ED%2599%2594%25EB%25A9%25B4%25EB%25A7%258C-%25EB%2590%25A0%25EB%2595%258C%2F" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fdreamsh19.github.io%2Fmac%2FMac%25EC%2597%2590%25EC%2584%259C-%25EC%258A%25A4%25ED%2581%25AC%25EB%25A6%25B0%25EC%2583%25B7-%25EB%25B0%2594%25ED%2583%2595%25ED%2599%2594%25EB%25A9%25B4%25EB%25A7%258C-%25EB%2590%25A0%25EB%2595%258C%2F" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fdreamsh19.github.io%2Fmac%2FMac%25EC%2597%2590%25EC%2584%259C-%25EC%258A%25A4%25ED%2581%25AC%25EB%25A6%25B0%25EC%2583%25B7-%25EB%25B0%2594%25ED%2583%2595%25ED%2599%2594%25EB%25A9%25B4%25EB%25A7%258C-%25EB%2590%25A0%25EB%2595%258C%2F" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
+
+      
+  <nav class="pagination">
+    
+      <a href="/server/Scale-Out%EA%B3%BC-Scale-Up/" class="pagination--pager" title="Scale Out과 Scale Up
+">Previous</a>
+    
+    
+      <a href="/go/Go-%EA%B8%B0%EC%B4%88/" class="pagination--pager" title="Go 기초
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+      <div class="page__comments">
+  
+  
+      <h4 class="page__comments-title">Leave a comment</h4>
+      <section id="disqus_thread"></section>
+    
+</div>
+
+    
+  </article>
+
+  
+  
+</div>
+
+    </div>
+
+    
+      <div class="search-content">
+        <div class="search-content__inner-wrap">
+<form class="search-content__form" onkeydown="return event.key != 'Enter';">
+    <label class="sr-only" for="search">
+      Enter your search term...
+    </label>
+    <input type="search" id="search" class="search-input" tabindex="-1" placeholder="Enter your search term...">
+  </form>
+  <div id="results" class="results"></div>
+</div>
+
+      </div>
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+      <li><strong>Follow:</strong></li>
+    
+
+    
+      
+        
+      
+        
+      
+        
+          <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i> LinkedIn</a></li>
+        
+      
+    
+
+    <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+  </ul>
+</div>
+
+<div class="page__footer-copyright">© 2025 서버 개발자. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+<script src="/assets/js/lunr/lunr.min.js"></script>
+<script src="/assets/js/lunr/lunr-store.js"></script>
+<script src="/assets/js/lunr/lunr-en.js"></script>
+
+
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LM91QEFQ4D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-LM91QEFQ4D', { 'anonymize_ip': false});
+</script>
+
+
+
+
+
+
+    
+  <script>
+    var disqus_config = function () {
+      this.page.url = "https://dreamsh19.github.io/mac/Mac%EC%97%90%EC%84%9C-%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7-%EB%B0%94%ED%83%95%ED%99%94%EB%A9%B4%EB%A7%8C-%EB%90%A0%EB%95%8C/";  /* Replace PAGE_URL with your page's canonical URL variable */
+      this.page.identifier = "/mac/Mac에서-스크린샷-바탕화면만-될때"; /* Replace PAGE_IDENTIFIER with your page's unique identifier variable */
+    };
+    (function() { /* DON'T EDIT BELOW THIS LINE */
+      var d = document, s = d.createElement('script');
+      s.src = 'https://dreamsh19-github-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', +new Date());
+      (d.head || d.body).appendChild(s);
+    })();
+  </script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript>
+
+
+  
+
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,2094 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.4">Jekyll</generator><link href="https://dreamsh19.github.io/feed.xml" rel="self" type="application/atom+xml" /><link href="https://dreamsh19.github.io/" rel="alternate" type="text/html" /><updated>2025-01-27T02:17:34+09:00</updated><id>https://dreamsh19.github.io/feed.xml</id><title type="html">기술을 기술하다</title><subtitle>ㅎㅅㅎ의 기술 블로그</subtitle><author><name>ㅎㅅㅎ</name><email>dreamsh19@gmail.com</email></author><entry><title type="html">중복 코드의 Git 히스토리를 병합하기 위한 시행착오</title><link href="https://dreamsh19.github.io/git/%EC%A4%91%EB%B3%B5-%EC%BD%94%EB%93%9C%EC%9D%98-git-%ED%9E%88%EC%8A%A4%ED%86%A0%EB%A6%AC%EB%A5%BC-%EB%B3%91%ED%95%A9%ED%95%98%EA%B8%B0-%EC%9C%84%ED%95%9C-%EC%8B%9C%ED%96%89%EC%B0%A9%EC%98%A4/" rel="alternate" type="text/html" title="중복 코드의 Git 히스토리를 병합하기 위한 시행착오" /><published>2025-01-18T00:00:00+09:00</published><updated>2025-01-18T00:00:00+09:00</updated><id>https://dreamsh19.github.io/git/%EC%A4%91%EB%B3%B5-%EC%BD%94%EB%93%9C%EC%9D%98-git-%ED%9E%88%EC%8A%A4%ED%86%A0%EB%A6%AC%EB%A5%BC-%EB%B3%91%ED%95%A9%ED%95%98%EA%B8%B0-%EC%9C%84%ED%95%9C-%EC%8B%9C%ED%96%89%EC%B0%A9%EC%98%A4</id><content type="html" xml:base="https://dreamsh19.github.io/git/%EC%A4%91%EB%B3%B5-%EC%BD%94%EB%93%9C%EC%9D%98-git-%ED%9E%88%EC%8A%A4%ED%86%A0%EB%A6%AC%EB%A5%BC-%EB%B3%91%ED%95%A9%ED%95%98%EA%B8%B0-%EC%9C%84%ED%95%9C-%EC%8B%9C%ED%96%89%EC%B0%A9%EC%98%A4/"><![CDATA[<h2 id="이슈">이슈</h2>
+<ul>
+  <li>신규 API 코드와 기존 API 코드를 동시에 서비스하던 중, 기존 API를 deprecate시키고, 기존 API 코드를 삭제하려고 하는 상황이었다.</li>
+  <li>그런데 문제는 신규 코드 최초 작성 당시, 기존 코드를 복붙하여 작성되었고, 수년 간의 git 히스토리는 기존 코드에만 남아있고, 신규 코드의 git 히스토리는 복붙 이후의 시점만 기록되어 있었다.</li>
+  <li>아래는 기존 코드에는 히스토리가 다 남아있는 반면, 신규 코드에는 복붙 히스토리만 남아있는 모습이다.
+    <ul>
+      <li>(그리고 여기서의 중요한 포인트는 신규 코드는 기존 코드와 90% 이상 일치하는 중복 코드였기 때문에, 신규 코드는 사실상 동일한 코드에서 git 히스토리만 사라진 코드라고 볼 수 있었다.)</li>
+    </ul>
+  </li>
+</ul>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center">기존</th>
+      <th style="text-align: center">신규</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center">![Image](https://github.com/user-attachments/assets/904ae9a7-e095-4cb4-9d57-8c7839fa3e00)</td>
+      <td style="text-align: center">![Image](https://github.com/user-attachments/assets/af877689-0eeb-40cf-a949-1d053601bfdf)</td>
+    </tr>
+  </tbody>
+</table>
+
+<ul>
+  <li>여기서 이슈가 발생하는데, <strong>기존 API 코드를 삭제하더라도, git 히스토리는 유지하고자 했다.</strong>
+    <ul>
+      <li>개인적으로 각종 히스토리를 파악하는데 git 히스토리를 자주 활용하기도 하고,</li>
+      <li>단순 히스토리 파악을 포함해서, 미처 몰랐던 선대(?) 개발자들의 의도를 알 수 있어서 같은 실수를 반복하지 않게 하기도 하기 때문이다.</li>
+      <li>기존 코드를 그냥 삭제해도 히스토리를 보려면 볼수야 있지만, 기존 코드 삭제 이후에는 삭제된 기존 코드가 어떤 것이었는지 알아내서 찾아가야 한다.</li>
+    </ul>
+  </li>
+  <li>그리고 결정적으로 해당 클래스가 비지니스의 대부분의 주요한 로직과 히스토리를 담고 있는 클래스였기 때문에 git 히스토리를 그대로 가져가고자 했다.</li>
+  <li>그래서 아래와 같은 목표를 달성하기 위한 시행착오를 이 글에서 다루었다.</li>
+</ul>
+
+<h2 id="목표">목표</h2>
+
+<p>기존 코드의 git 히스토리를 신규 코드의 git 히스토리와 병합하고, 기존 코드를 삭제한다.</p>
+
+<h2 id="1-git-blame-병합">1. Git blame 병합</h2>
+
+<p>사실 이것을 시작한 최초의 목적은 글의 <a href="#이슈">서두</a>에서 보여준 기존 코드의 git blame을 신규 코드의 git blame에 반영하고 싶었던 것이었다.<br />
+그리고 동일한 니즈에 대한 해결책을 다룬 <a href="https://devblogs.microsoft.com/oldnewthing/20190514-00/?p=102493">글</a>이 있었다!</p>
+
+<p>요약하면 rename-rename merge conflict를 이용하는 방법으로, 서로 다른 파일 A,B의 git blame을 합치고자 할때, 아래와 같이 수행한다.</p>
+<ol>
+  <li>branch1 : A-&gt;C rename</li>
+  <li>branch2 : B-&gt;C rename</li>
+  <li>branch1과 branch2를 merge
+    <ul>
+      <li>이때 파일 C에 대해 발생하는 merge conflict를 resolve 해주어야한다.</li>
+    </ul>
+  </li>
+</ol>
+
+<p>구체적인 방법은 글에서 자세하게 다루고 있으니, 그대로 따라하면 된다.</p>
+
+<p>참고로, 이때 기존 코드를 신규 코드로(A-&gt;B) 바로 merge하지 않는 이유는, 이렇게 하게 되면, git blame이 merge 시점의 commit으로 모두 덮어써져 버리기 때문에, 달성하고자 하는 목적에 벗어난다.</p>
+
+<h3 id="결과물">결과물</h3>
+
+<p><img src="https://github.com/user-attachments/assets/2fc8e7a4-e6e7-489c-be63-b92895e6b75e" alt="Image" /></p>
+
+<p>기존 코드와 신규 코드의 git blame이 잘 병합되었다.</p>
+
+<h3 id="추가적인-주의사항">추가적인 주의사항</h3>
+
+<p>위의 글에 따라 반영하면서 추가적으로 직접 겪었던 시행착오와 그에 따른 주의사항을 기록하였다.</p>
+
+<ul>
+  <li>merge conflict 해소시에는 기존 파일들의 라인을 선택/제거만 하고, 수정은 하지 않는 것이 좋다. 수정이 필요하다면 이후의 별도 커밋에서 수행하는 것이 git blame 유지에 바람직하다.
+    <ul>
+      <li>그 이유는, merge conflict 해소 시 기존에 있던 라인을 수정하면, git에서는 merge 시점에 새로운 라인을 추가한 것으로 인식하고, 해당 라인에 대한 git blame도 merge 커밋 시점으로 기록된다.
+        <ul>
+          <li>(git 입장에서는 기존 라인을 수정한 것인지 새로운 라인을 추가한 것인지 자체를 구분하는 것이 불가능하기 때문에)</li>
+        </ul>
+      </li>
+      <li>그래서 merge conflict 해소 직후 시점에는 컴파일이 되지 않는 상태의 커밋이 불가피하게 존재할 수 있다.(수정이 불가능하므로)</li>
+    </ul>
+  </li>
+  <li>완전히 동일한 라인이 두 개의 파일에 모두 포함되어 있을때, 해당 라인에 대한 git blame을 어떤 파일의 것으로 따라갈지는 git의 자체적인 휴리스틱(해당 라인의 앞뒤 라인의 유사도 등)에 따라 결정되기 때문에 일관된 방법을 찾는 것은 한계가 있다.
+    <ul>
+      <li>따라서 위 글의 예시에서처럼 기계적인 merge conflict resolve는 현실적으로 어렵다.</li>
+      <li>위 글에서 merge conflict가 기계적으로 resolve 가능했던 것은 합치고자 하는 두 개의 파일의 내용이 서로 다른 상황이었기 때문이다.</li>
+    </ul>
+  </li>
+  <li>rename 시에는 Intellij 등의 IDE 환경에서 rename하는 경우 파일의 “내용”(import나 클래스명 등)을 자동으로 바꿔주기 때문에 cli 환경에서 단순 mv만 실행하여 파일명만 변경하는 것을 권장한다.</li>
+</ul>
+
+<h2 id="2-github의-파일-히스토리-통합">2. Github의 파일 히스토리 통합</h2>
+
+<p>위에서 git blame을 합쳤으니 목적을 달성하고 마무리하려고 했다.. 그러나 예상치 못한 이슈가 발생했다.<br />
+위에서 작업한 내용을 푸시하여 Github에서 파일 히스토리를 확인해보니, rename 이전의 히스토리가 신규 코드 쪽 히스토리만 남아있고, 기존 코드의 히스토리는 누락된 것이다.</p>
+
+<p><img src="https://github.com/user-attachments/assets/87201416-1e94-4993-bfe4-2ddaef255b0e" alt="Image" /><br />
+(Github UI 상에서 기존 파일에 대한 히스토리가 누락됐다.)</p>
+
+<p>git blame만큼이나 파일 히스토리 또한 중요하기도 하고, 왜 신규 파일의 히스토리만 보존된 것인지 확인하기 위해 살펴보기 시작했다.</p>
+
+<h3 id="git의-파일-히스토리와-git-log-명령어">Git의 파일 히스토리와 git log 명령어</h3>
+
+<p>들어가기에 앞서, git에서의 “파일” 히스토리에 대해 이해할 필요가 있다.<br />
+git의 기본 단위는 커밋이고, git에서는 단순히 커밋의 그래프만을 관리하고 추적하기 때문에 내부적으로는 “파일” 단위의 히스토리라는 개념 자체가 없다.</p>
+
+<p>다만, 파일 단위의 히스토리 조회 목적을 위해 git은 유틸성으로 <code class="language-plaintext highlighter-rouge">git log ${filename}</code> 형태의 명령어를 제공한다.<br />
+그리고 이 <code class="language-plaintext highlighter-rouge">git log ${filename}</code> 명령어는 결국엔 커밋 그래프를 순차적으로 탐색하면서 해당 <code class="language-plaintext highlighter-rouge">${filename}</code>이 포함된 커밋만을 필터링해서 출력해주는 방식으로 동작한다. (해당 파일에 대한 커밋 목록을 따로 관리하지 않기 때문에)</p>
+
+<p>그리고 해당 명령어는 기본적으로는 rename 이전 히스토리에 대한 추적을 지원하지 않는다. rename 커밋을 만나면, 필터링의 기준이 되는 파일명이 더 이상 존재하지 않으니 그대로 종료한다.<br />
+하지만 rename도 커밋 중의 하나일 뿐이기 때문에, rename 이전의 파일 히스토리도 이어서 보고 싶은 것은 자연스러운 니즈이며, 이러한 니즈를 위해서 git log 에는 <code class="language-plaintext highlighter-rouge">--follow</code> 옵션을 제공한다.</p>
+
+<p><code class="language-plaintext highlighter-rouge">git log --follow ${filename}</code> 형태의 명령어를 통해 rename 이전의 파일 히스토리도 함께 조회할 수 있다.</p>
+
+<h3 id="github의-파일-히스토리">Github의 파일 히스토리</h3>
+
+<p>Github에서도 파일 히스토리(특정 파일에 대한 commit 리스트)를 아래와 같이 제공한다.<br />
+<img src="https://i0.wp.com/user-images.githubusercontent.com/4021812/171795153-4f327a04-eb27-4d46-acb1-73d2e82ce4c5.gif?ssl=1" alt="171795153-4f327a04-eb27-4d46-acb1-73d2e82ce4c5.gif" /></p>
+
+<p>그리고 Github에서는 git log 디폴트 옵션처럼, 원래 rename 이전의 파일 히스토리를 UI 상에서 지원하지 않았으나, 2022년 업데이트로 rename 이전의 파일 히스토리도 조회할 수 있도록 업데이트되었다.<br />
+<img src="https://github.com/user-attachments/assets/32a9cd30-7652-4936-8c3f-28342510df59" alt="Image" /></p>
+<ul>
+  <li><a href="https://github.blog/changelog/2022-06-06-view-commit-history-across-file-renames-and-moves/">https://github.blog/changelog/2022-06-06-view-commit-history-across-file-renames-and-moves/</a></li>
+</ul>
+
+<p>예상하기로는 해당 기능은 동일한 목적의 <code class="language-plaintext highlighter-rouge">git log --follow</code> 옵션을 내부적으로 사용할 것 같다.<br />
+그런데 위 changelog에서 주목할 점은 <code class="language-plaintext highlighter-rouge">git log --follow</code>와 “similar”한 방식으로 동작한다는 문구이다.<br />
+결국 <code class="language-plaintext highlighter-rouge">git log --follow</code> 수행결과와 동일하지 않다는 것인데, 실제로 수행결과가 유사하기는 하나, 완전히 일치하지 않았다.</p>
+
+<p>왜 이미 동일한 목적으로 존재하는 <code class="language-plaintext highlighter-rouge">git log --follow</code> 명령어를 그대로 사용하지 않을까?<br />
+그 이유는 <code class="language-plaintext highlighter-rouge">git log --follow</code>의 버그에 있다.</p>
+
+<h3 id="git-log---follow의-버그"><code class="language-plaintext highlighter-rouge">git log --follow</code>의 버그</h3>
+
+<p><code class="language-plaintext highlighter-rouge">git log --follow</code>의 내부 동작 방식을 살펴보자.<br />
+<code class="language-plaintext highlighter-rouge">git log --follow</code> 의 내부 동작 방식을 자세히 설명한 <a href="https://stackoverflow.com/questions/46487476/git-log-follow-graph-skips-commits/46492159#46492159">글</a>이 있어 일부를 발췌하였다.</p>
+
+<p><img src="https://github.com/user-attachments/assets/0066d772-e9cf-49f1-ab4c-9e37efa27714" alt="Image" /></p>
+
+<p>위의 예시를 단순화하여 표현하면 아래와 같다. (커밋의 이름은 커밋시간 순이며, 그래프를 시간 순으로 정렬하였다.)</p>
+
+<p><img class="mermaid" src="https://mermaid.ink/svg/eyJjb2RlIjoiJSV7aW5pdDoge1wiZ2l0R3JhcGhcIjoge1widXNlTWF4V2lkdGhcIjogZmFsc2UsICdtYWluQnJhbmNoTmFtZSc6ICdtYXN0ZXInfX19JSVcbmdpdEdyYXBoIEJUOlxuY29tbWl0IGlkOlwiW2EudHh0XSBDcmVhdGVcIiB0YWc6XCIxXCJcbmJyYW5jaCBmZWF0dXJlXG5jaGVja291dCBmZWF0dXJlXG5jb21taXQgaWQ6XCJbYS50eHRdIENoYW5nZVwiIHRhZzpcIjJcIlxuY2hlY2tvdXQgbWFzdGVyXG5jb21taXQgaWQ6XCJbYS50eHRdIHRvIFtiLnR4dF1cIiB0YWc6XCIzXCJcbm1lcmdlIGZlYXR1cmUgaWQ6XCJNZXJnZVwiIHRhZzpcIjRcIiIsIm1lcm1haWQiOm51bGx9" /></p>
+
+<p>예시를 바탕으로 정리하면, (참고로 발췌한 부분의 예시가 반대로 적혀있어 이를 정정하고, 추가 내용을 보강하여 정리하였다.)</p>
+<ul>
+  <li>commit 4에서 <code class="language-plaintext highlighter-rouge">git log --follow b.txt</code> 명령어를 수행한 상황에서 살펴보자.</li>
+  <li><code class="language-plaintext highlighter-rouge">--follow</code> 옵션은 rename 커밋(commit 3)을 만나면 탐색대상 파일을 바꿔치기(<code class="language-plaintext highlighter-rouge">b.txt</code> -&gt; <code class="language-plaintext highlighter-rouge">a.txt</code>) 하는 방식으로 동작한다. (as-is, to-be 파일명을 둘다 추적하는 방식으로 동작하지 않는다.)</li>
+  <li>그렇기 때문에 “바꿔치기가 언제 됐는지”(rename 커밋(commit 3)을 언제 방문했는지) 시점에 따라 결과가 달라진다. 예를 들어,
+    <ol>
+      <li>바꿔치기가 먼저 됐다면(commit 3를 먼저 방문했다면, 4-&gt;3-&gt;2-&gt;1), commit 3 방문 시점에 탐색 대상 파일명이 <code class="language-plaintext highlighter-rouge">b.txt</code> -&gt; <code class="language-plaintext highlighter-rouge">a.txt</code>로 바꿔치기가 되고, commit 2 방문 시점에는 대상 파일명이 <code class="language-plaintext highlighter-rouge">a.txt</code>이므로 commit 2가 포함된다. 결과는 3-&gt;2-&gt;1 로 출력된다.</li>
+      <li>하지만, 바꿔치기가 나중에 됐다면(commit 3를 나중에 방문했다면, 4-&gt;2-&gt;3-&gt;1), as-is 파일명 <code class="language-plaintext highlighter-rouge">a.txt</code>로 기록된 commit 2를 방문하는 시점에 탐색 대상 파일명은 <code class="language-plaintext highlighter-rouge">b.txt</code>이므로 commit 2는 누락된다. 결과는 3-&gt;1 로 출력된다.
+        <ul>
+          <li>위 stackoverflow 예시에서 최초 작성자가 의문을 제기한 케이스</li>
+        </ul>
+      </li>
+    </ol>
+  </li>
+  <li>확인 결과
+    <ul>
+      <li><img src="https://github.com/user-attachments/assets/a15d8d8e-27a8-41ac-b374-d7e4d542be36" alt="Image" /></li>
+    </ul>
+  </li>
+  <li>그리고 <code class="language-plaintext highlighter-rouge">git log</code>의 탐색 순서는 priority queue 기반의 BFS(breadth first search) 방식으로 탐색한다.
+    <ul>
+      <li>자세한 내용은 <a href="#git-log-우선순위-관련-참고">git log 우선순위 관련</a> 참고</li>
+    </ul>
+  </li>
+</ul>
+
+<p>어쨌든 위의 내용은 내부적인 동작 방식에 대한 디테일한 설명인 것이고,<br />
+<strong>중요한 것은 <code class="language-plaintext highlighter-rouge">git log --follow</code> 명령어는 git log의 탐색 순서가 따라 결과 셋이 달라질 수 있다는 것이다.</strong></p>
+
+<h3 id="git-log---follow의-한계"><code class="language-plaintext highlighter-rouge">git log --follow</code>의 한계</h3>
+
+<p>위에서 <code class="language-plaintext highlighter-rouge">git log --follow</code>가 동시에 최대 한개의 파일만 추적이 가능하다는 것을 알았다.</p>
+
+<p>그럼 본론으로 돌아와 해결하고자 하는 문제에 위 내용을 적용해보자.<br />
+<a href="#1-git-blame-병합">1. Git blame 병합</a> 파트에서 적용하고자 하는 방법을 위의 예시와 동일한 도식으로 나타내면 아래와 같다.</p>
+
+<p><img class="mermaid" src="https://mermaid.ink/svg/eyJjb2RlIjoiJSV7aW5pdDoge1wiZ2l0R3JhcGhcIjoge1widXNlTWF4V2lkdGhcIjogZmFsc2UsICdtYWluQnJhbmNoTmFtZSc6ICdmZWF0dXJlQSd9fX0lJVxuZ2l0R3JhcGggQlQ6XG5jb21taXQgaWQ6XCJbQl0gRG8gc29tZXRoaW5nIGluIEJcIiB0YWc6XCIwXCJcbmNvbW1pdCBpZDpcIltBXSBEbyBzb21ldGhpbmcgaW4gQVwiIHRhZzpcIjFcIlxuYnJhbmNoIGZlYXR1cmVCXG5jaGVja291dCBmZWF0dXJlQlxuY29tbWl0IGlkOlwiW0JdIHRvIFtDXVwiIHRhZzpcIjJcIlxuY2hlY2tvdXQgZmVhdHVyZUFcbmNvbW1pdCBpZDpcIltBXSB0byBbQ11cIiB0YWc6XCIzXCJcbm1lcmdlIGZlYXR1cmVCIGlkOlwiW0NdIE1lcmdlIEEgYW5kIEIgYXMgQ1wiIHRhZzpcIjRcIiIsIm1lcm1haWQiOm51bGx9" /></p>
+
+<p>그리고 이 상황에서 탐색의 경우의 수에 따른 <code class="language-plaintext highlighter-rouge">git log --follow C</code> 수행 시나리오를 떠올려보자.</p>
+<ol>
+  <li>commit 3을 먼저 방문(4-&gt;3-&gt;2-&gt;1-&gt;0)
+    <ul>
+      <li>commit 3 방문 시점에 탐색 대상 파일을 A로 변경</li>
+      <li>commit 2는 A가 포함되지 않았으므로 제외</li>
+      <li>commit 1은 A가 포함됐으므로 출력, commit 0은 A가 포함되지 않았으므로 제외</li>
+      <li>결과 : 4-&gt;3-&gt;1 (2와 0은 누락)</li>
+    </ul>
+  </li>
+  <li>commit 2를 먼저 방문(4-&gt;2-&gt;3-&gt;1-&gt;0)
+    <ul>
+      <li>commit 2 방문 시점에 탐색 대상 파일을 B로 변경</li>
+      <li>commit 3는 B가 포함되지 않았으므로 제외</li>
+      <li>commit 1은 B가 포함되지 않았으므로 제외, commit 0은 B가 포함됐으므로 포함.</li>
+      <li>결과 : 4-&gt;2-&gt;0 (3과 1은 누락)</li>
+    </ul>
+  </li>
+</ol>
+
+<p>두 가지 시나리오를 살펴본 결과, 결국 양쪽에서 rename이 발생한 경우, <strong>어느 쪽을 먼저 탐색하든, 다른 한쪽이 누락될 수 밖에 없다.</strong><br />
+이는 <code class="language-plaintext highlighter-rouge">git log --follow</code>가 동시에 최대 한개의 파일만 추적하기 때문에 발생하는 한계이며, 히스토리를 보존하고자 하는 본 과제의 목적상 아주 치명적이다.</p>
+
+<p>그리고 해당 한계에 대해 다룬 <a href="https://stackoverflow.com/questions/64454637/git-log-follow-not-working-to-show-history-beyond-renames/64468571#64468571">글</a>이 있어 일부를 발췌하였다.<br />
+<img src="https://github.com/user-attachments/assets/44655aea-6b9c-48fc-8679-230dc3230da0" alt="Image" /></p>
+
+<p>결국 parent branch가 여러 개 있고, 한쪽 parent에서(혹은 양쪽 모두에서) rename이 있었던 경우 나머지 parent의 커밋 히스토리는 누락된다는 내용이다.</p>
+
+<h3 id="github의-방식">Github의 방식</h3>
+
+<p>앞서 Github에서는 파일 히스토리를 <code class="language-plaintext highlighter-rouge">git log --follow</code>와 “유사한” 방식으로 보여준다고 했다.<br />
+<code class="language-plaintext highlighter-rouge">git log --follow</code>는 위와 같은 버그와 한계가 있으니, Github에서는 이를 해결하였을까?</p>
+
+<p>결론부터 얘기하면 아니다.<br />
+Github의 UI 상에서 지원하는 파일 히스토리는 <code class="language-plaintext highlighter-rouge">git log --follow</code>와 약간 다른 결과를 보여주지만, 본질적으로 본 과제에서 문제가 되는, 한 쪽 파일의 히스토리가 누락되는 문제는 해결되지 않았다.</p>
+
+<p>Github의 파일 히스토리는 아래와 같이 동작하는 것으로 추측하고 있다. (관련 공식 레퍼런스를 찾진 못했다.)<br />
+Github url을 통해 아래와 같이 추측하였고, 추측한 내용을 로컬에서 수행한 결과와 화면에서 보여준 결과가 동일하였다.</p>
+
+<p>커밋 c1에 의해 A-&gt;B로의 rename이 있었고, 커밋 c2 상태에서 B의 파일 히스토리를 조회하는 시나리오를 기준으로,</p>
+<ol>
+  <li>최초에 파일 히스토리 조회시 <code class="language-plaintext highlighter-rouge">--follow</code> 옵션 없이 <code class="language-plaintext highlighter-rouge">git log c2 B</code>를 수행
+    <ul>
+      <li>파일 히스토리 버튼 클릭시 <code class="language-plaintext highlighter-rouge">github.com/{repo}/commits/c2/B</code> url로 연결된다.</li>
+      <li><img src="https://github.com/user-attachments/assets/fd001eab-98e3-46c5-9fcf-9e9568363ae7" alt="Image" /></li>
+    </ul>
+  </li>
+  <li>마지막 커밋(rename 커밋, 즉 c1)에 도달한 경우 c1으로 부터 다시 <code class="language-plaintext highlighter-rouge">git log c1 A</code>를 수행
+    <ul>
+      <li>Github에서는 rename이 있었던 경우 <code class="language-plaintext highlighter-rouge">Rename from A (Browse History)</code> 형태의 링크를 제공하며,</li>
+      <li>해당 링크는 <code class="language-plaintext highlighter-rouge">github.com/{repo}/commits/c1/A?browsing_rename_history=true&amp;new_path=B&amp;original_branch=c2</code>로 연결된다.</li>
+      <li><img src="https://github.com/user-attachments/assets/d5020fa8-83ef-4183-8f8d-aceb7c16cd5a" alt="Image" /></li>
+    </ul>
+  </li>
+  <li>마지막 커밋이 rename이 아닐때까지 1,2를 반복</li>
+</ol>
+
+<p>결국 요약하면, <code class="language-plaintext highlighter-rouge">--follow</code> 옵션 없이 <code class="language-plaintext highlighter-rouge">git log HEAD filename</code> 형태의 명령어를 HEAD와 filename을 바꿔가며 반복적으로 호출하는 형태이다.<br />
+<strong>하지만 여전히 동시에 최대 한개의 파일만 추적한다는 동일한 한계를 갖고 있기 때문에, 한 쪽 파일의 히스토리가 누락되는 한계는 여전히 남아있다.</strong></p>
+
+<h3 id="특정-파일의-히스토리를-의도적으로-채택하는-방법git-log의-탐색-우선순위">특정 파일의 히스토리를 의도적으로 채택하는 방법(git log의 탐색 우선순위)</h3>
+
+<p>위에서 살펴보았듯이, <code class="language-plaintext highlighter-rouge">git log --follow</code>든, Github이든 한 쪽의 히스토리가 누락되는 것은 불가피해보인다.<br />
+그럼 결국 한 쪽 파일의 히스토리를 선택해야하는 상황에 봉착한다. 본 과제의 목적은 기존 코드의 히스토리를 보존하고자 하는 것이었으므로, 기존 코드의 히스토리를 채택하자.</p>
+
+<p><a href="#github의-방식">Github의 방식</a> 파트에서 살펴보았듯이, 기존 파일의 히스토리를 보존하기 위해서는 git log 탐색 순서상 마지막 커밋이 기존 파일의 rename 커밋이 되어야한다.<br />
+그렇다면, git log의 탐색 순서는 어떻게 결정되는 것일까?</p>
+
+<p>앞서 “<code class="language-plaintext highlighter-rouge">git log</code>의 탐색은 priority queue 기반의 BFS(breadth first search) 방식으로 탐색한다.” 라는 내용을 언급하였다.<br />
+이 말은 곧 git log는 우선순위 기반으로 탐색을 한다는 것이고, 우선순위의 디폴트로써 “커밋 시간”의 역순을 채택하고 있다.<br />
+<strong>결국 특정 커밋(보존하고자 하는 파일의 rename 커밋)을 git log가 마지막에 탐색하도록 하게 하기 위해서는 해당 커밋을 시간순으로 먼저 수행하면 된다.</strong></p>
+
+<p>따라서, 기존 파일의 rename 커밋이 마지막에 탐색되도록 하기 위해, 아래와 같이 기존 파일의 rename 커밋을 먼저 수행 후, 신규 파일의 rename 커밋을 이후에 수행하였다.</p>
+
+<p><img src="https://github.com/user-attachments/assets/da932aba-3b69-4d1f-9439-8753466f2d7e" alt="Image" /></p>
+
+<h4 id="git-log-우선순위-관련-참고">git log 우선순위 관련 참고</h4>
+<ul>
+  <li><a href="#2-github의-파일-히스토리-통합">파트 도입부</a> 에서 문제가 되었던, 히스토리가 신규 파일로 연결되었던 것도, 신규 파일의 rename 커밋이 기존 파일의 rename 커밋보다 시간순으로 먼저 수행되었기 때문이었다.</li>
+  <li>git log의 탐색 우선순위는 디폴트인 커밋 시간 외에도 git log의 옵션을 통해 지정할 수 있으며, <code class="language-plaintext highlighter-rouge">--date-order</code>, <code class="language-plaintext highlighter-rouge">--author-date-order</code>, <code class="language-plaintext highlighter-rouge">--topo-order</code> 등의 옵션을 제공한다. (<a href="https://git-scm.com/docs/git-log#_commit_ordering">Git - git-log Documentation</a> 참고)</li>
+</ul>
+
+<h3 id="결과물-1">결과물</h3>
+
+<p>이로써 <a href="#2-github의-파일-히스토리-통합">파트 도입부</a> 에서 Github의 파일 히스토리가 신규 파일로 연결되었던 것을 기존 파일로 연결되도록 하였다.<br />
+<img src="https://github.com/user-attachments/assets/fc6159f7-9610-44cc-a063-7d238e63d080" alt="Image" /></p>
+
+<h2 id="3-fast-forward-merge">3. Fast forward merge</h2>
+
+<p>여기까지 왔으면, 복잡한 과정을 대부분 지나왔다.<br />
+여기서 한 가지 더 추가적인 주의사항이 존재하는데, 이 주의사항을 놓치면 지금까지의 수고가 무용지물이 될 수 있다. 그것은 바로 merge 방식이다.</p>
+
+<p>대부분의 피쳐 개발과 마찬가지로, 위의 모든 과정을 feature 브랜치에서 진행했기 때문에, develop 및 master로의 머지가 필요하다.<br />
+이때, 명시적인 merge commit이 발생하는 경우 master 및 develop 입장에서는 커밋 원자성이 훼손되기 때문에 커밋 원자성을 보존하기 위한 위의 노력들이 모두 물거품이 된다.<br />
+따라서, 명시적인 merge commit이 발생하지 않으면서 커밋 원자성을 보존할 수 있는 Fast forward merge 방식으로 머지해야한다.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center">Non fast forward merge</th>
+      <th style="text-align: center">Fast forward merge</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center">![Image](https://github.com/user-attachments/assets/296705c1-8fae-4de4-ae93-5ad79c1bed7e)</td>
+      <td style="text-align: center">![Image](https://github.com/user-attachments/assets/b4469f8b-cd20-47e1-9c2a-d61a0a9e5c74)</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>(Non-Fast-forward merge와 Fast forward merge의 차이점. 출처 : <a href="https://dev.to/lydiahallie/cs-visualized-useful-git-commands-37p1">🌳🚀 CS Visualized: Useful Git Commands - DEV Community</a>)</p>
+
+<p>그러나 문제는 Github에서는 아직까지 UI 상에서 fast forward merge를 지원하지 않고, 명시적인 merge commit을 강제한다.<br />
+따라서 Github 상의 Pull request를 fast forward merge 하기 위해서는 아래와 같이 로컬에서 fast-forward merge 후 push하는 방식으로 수행할 수 있다.<br />
+push 시점에 Github에서는 이를 인지하여 Pull request를 머지 처리한다.<br />
+<img src="https://github.com/user-attachments/assets/5acf4ce0-7cfe-44d2-ba59-9b3d65a1d26f" alt="Image" /></p>
+
+<p>혹은 Github에서 <a href="https://github.com/marketplace/actions/fast-forward-pr">Fast Forward PR · Actions · GitHub Marketplace · GitHub</a> 과 같은 github actions를 활용할 수도 있다.</p>
+
+<h3 id="fast-forward-merge-관련-참고">Fast-forward merge 관련 참고</h3>
+<ul>
+  <li>Github에서 지원하는 다른 머지 방식인 squash and merge , rebase and merge는 fast-forward 와 유사한 방식으로 동작하지만 아래와 같은 이유로 적합하지 않다.
+    <ul>
+      <li>Squash and merge : 커밋 원자성이 훼손되므로, 이 경우에 적합하지 않다.</li>
+      <li>Rebase and merge : rebase는 결국 commit을 다시 수행하는 과정이라고 볼 수 있는데, 위에서 살펴본 것처럼 수동으로 충돌 해결이 필요하므로 버튼 자체가 disable된다.</li>
+    </ul>
+  </li>
+  <li>그리고 사실 이 문제는 Github에서 fast forward merge를 지원하지 않기 때문에 발생하는 문제이고, Gitlab 등에서는 Fast forward merge를 UI 상에서 지원한다.
+    <ul>
+      <li><img src="https://github.com/user-attachments/assets/514ad420-ecf6-4210-bbad-54312e7729e5" alt="Image" /></li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="결론">결론</h2>
+
+<p>결국 1~3의 과정을 거쳐서 git blame를 병합하고, 기존 코드의 Github 파일 히스토리를 보존하면서 중복 코드를 병합할 수 있었다.</p>
+
+<p>다만, 여기까지 오면서 느낀 점은 두가지인데,</p>
+<ol>
+  <li>복잡하다.</li>
+  <li>그리고 결정적으로 복잡함을 이겨내더라도, 온전하게 기존 히스토리를 유지할 수 없다는 한계점 또한 있다.</li>
+</ol>
+
+<p>그렇기 때문에 본 과제를 진행하면서 배운 교훈은 아래와 같다.</p>
+
+<ol>
+  <li>위 방법을 사용하는 일이 없도록 하는 것이 가장 좋다.</li>
+  <li>다시 말해, 코드 복붙은 git 히스토리 관리 입장에서도 바람직하지 않다.
+    <ul>
+      <li>위에서 살펴본 방법으로 사후적인 수습은 가능하나, 복잡하고, 상황에 따라서는 온전한 수습이 되지 않을 수 있다.</li>
+    </ul>
+  </li>
+  <li>코드 복붙이 불가피하다면, 복사 시점에 단순 내용 복사가 아닌 git 히스토리를 같이 복사할 수 있는 아래 방법을 활용하는 것이 좋다.
+    <ul>
+      <li><a href="https://stackoverflow.com/questions/16937359/git-copy-file-preserving-history/44036771#44036771">Git copy file preserving history - Stack Overflow</a> 참고</li>
+      <li>요약하면, 별도 브랜치에서 각각 A-&gt;B, A-&gt;C를 수행 후 merge, 그 이후 C-&gt;A로 rename하면 A와 B가 동일한 내용과 히스토리를 갖고 복사된다.</li>
+    </ul>
+  </li>
+</ol>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li><a href="https://devblogs.microsoft.com/oldnewthing/20190514-00/?p=102493">Mundane git tricks: Combining two files into one while preserving line history - The Old New Thing</a></li>
+  <li><a href="https://github.blog/changelog/2022-06-06-view-commit-history-across-file-renames-and-moves/">View commit history across file renames and moves - GitHub Changelog</a></li>
+  <li><a href="https://git-scm.com/docs/git-log#Documentation/git-log.txt---follow">Git - git-log Documentation</a></li>
+  <li><a href="https://stackoverflow.com/questions/46487476/git-log-follow-graph-skips-commits/46492159#46492159">git log - `git log –follow –graph` skips commits - Stack Overflow</a></li>
+  <li><a href="https://stackoverflow.com/questions/64454637/git-log-follow-not-working-to-show-history-beyond-renames/64468571#64468571">version control - Git log (–follow) not working to show history beyond renames - Stack Overflow</a></li>
+  <li><a href="https://stackoverflow.com/questions/59520900/does-git-log-use-depth-first-search-traversal-to-display-the-commits">Does ‘git log’ use Depth First Search traversal to display the commits? - Stack Overflow</a></li>
+  <li><a href="https://stackoverflow.com/questions/60597400/how-to-do-a-fast-forward-merge-on-github/66906599#66906599">How to do a fast-forward merge on GitHub? - Stack Overflow</a></li>
+  <li><a href="https://dev.to/lydiahallie/cs-visualized-useful-git-commands-37p1">🌳🚀 CS Visualized: Useful Git Commands - DEV Community</a></li>
+  <li><a href="https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/about-pull-request-merges#rebase-and-merge-your-commits">About pull request merges - GitHub Docs</a></li>
+  <li><a href="https://github.com/marketplace/actions/fast-forward-pr">Fast Forward PR · Actions · GitHub Marketplace · GitHub</a></li>
+  <li><a href="https://docs.gitlab.com/ee/user/project/merge_requests/methods/#fast-forward-merge">Merge methods | GitLab</a></li>
+  <li><a href="https://stackoverflow.com/questions/16937359/git-copy-file-preserving-history/44036771#44036771">Git copy file preserving history - Stack Overflow</a></li>
+</ul>]]></content><author><name>ㅎㅅㅎ</name><email>dreamsh19@gmail.com</email></author><category term="Git" /><category term="Git" /><summary type="html"><![CDATA[이슈 신규 API 코드와 기존 API 코드를 동시에 서비스하던 중, 기존 API를 deprecate시키고, 기존 API 코드를 삭제하려고 하는 상황이었다. 그런데 문제는 신규 코드 최초 작성 당시, 기존 코드를 복붙하여 작성되었고, 수년 간의 git 히스토리는 기존 코드에만 남아있고, 신규 코드의 git 히스토리는 복붙 이후의 시점만 기록되어 있었다. 아래는 기존 코드에는 히스토리가 다 남아있는 반면, 신규 코드에는 복붙 히스토리만 남아있는 모습이다. (그리고 여기서의 중요한 포인트는 신규 코드는 기존 코드와 90% 이상 일치하는 중복 코드였기 때문에, 신규 코드는 사실상 동일한 코드에서 git 히스토리만 사라진 코드라고 볼 수 있었다.)]]></summary></entry><entry><title type="html">Jersey Singleton 객체의 초기화 시점</title><link href="https://dreamsh19.github.io/jersey/Jersey-Singleton-%EA%B0%9D%EC%B2%B4%EC%9D%98-%EC%B4%88%EA%B8%B0%ED%99%94-%EC%8B%9C%EC%A0%90/" rel="alternate" type="text/html" title="Jersey Singleton 객체의 초기화 시점" /><published>2024-12-21T00:00:00+09:00</published><updated>2024-12-21T00:00:00+09:00</updated><id>https://dreamsh19.github.io/jersey/Jersey-Singleton-%EA%B0%9D%EC%B2%B4%EC%9D%98-%EC%B4%88%EA%B8%B0%ED%99%94-%EC%8B%9C%EC%A0%90</id><content type="html" xml:base="https://dreamsh19.github.io/jersey/Jersey-Singleton-%EA%B0%9D%EC%B2%B4%EC%9D%98-%EC%B4%88%EA%B8%B0%ED%99%94-%EC%8B%9C%EC%A0%90/"><![CDATA[<h2 id="이슈">이슈</h2>
+<ul>
+  <li>현재 운영 중인 Jersey 기반의 서비스 중에 애플리케이션 구동 시점에 응답시간이 지연되는 이슈가 있었다.</li>
+  <li>구동 시점에만 이슈가 발생했기 때문에 무엇인가 초기화가 늦어지는 것으로 추측하고, 살펴보기 시작했다.</li>
+</ul>
+
+<h2 id="클래스의-초기화-시점">클래스의 초기화 시점</h2>
+
+<p>초기화 지연을 의심하여 애플리케이션 내에서 사용하는 Singleton 객체의 초기화 시점에 로그를 찍도록 했다.<br />
+예상은 애플리케이션 구동 시점에 모두 초기화될 것으로 예상하였으나, 결과는 놀랍게도 실제 호출 시점에 초기화가 이루어졌다. 그래서 이러한 현상이 발생하는 이유를 찾아보기 시작했다.</p>
+
+<p>초기화가 늦게 이루어지는 클래스는 아래와 같이 Singleton 형태로 구현되어 있었고, 사용하는 쪽에서는 ServiceA.getInstance() 형태로 호출하고 있었다.</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ServiceA</span> <span class="o">{</span>  
+	
+	<span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">ServiceA</span> <span class="no">INSTANCE</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">ServiceA</span><span class="o">();</span>  
+  
+    <span class="kd">private</span> <span class="nf">ServiceA</span><span class="o">()</span> <span class="o">{}</span>
+  
+    <span class="kd">public</span> <span class="kd">static</span> <span class="nc">ServiceA</span> <span class="nf">getInstance</span><span class="o">()</span> <span class="o">{</span>  
+        <span class="k">return</span> <span class="no">INSTANCE</span><span class="o">;</span>  
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>코드에서 보면 명확하듯이, 클래스가 로딩되는 시점에 static 변수인 INSTANCE 객체가 초기화될 것이라고 생각했고, 그래서 클래스는 애플리케이션 구동 시점에 로딩될테니, 애플리케이션 구동 시점에 Singleton 객체인 INSTANCE가 초기화된다고 생각하고 있었다.</p>
+
+<p>그러나 관련해서 좀 더 찾아보다보니, 여기서 한가지 놓치고 있었던 전제가 있었다.<br />
+클래스가 로딩되는 시점에 초기화가 되는 것은 맞지만, 애플리케이션 구동 시점에 클래스가 로딩되는가? 에 대한 전제이다.</p>
+
+<p>그리고 결론부터 이야기하면, 자바의 스펙상, 필요하지 않는 클래스는 미리 로딩하지 않는다.</p>
+
+<h3 id="jls-1241에-명시된-스펙">JLS 12.4.1에 명시된 스펙</h3>
+
+<p>JLS(Java Language Spec)에는 클래스의 초기화 시점을 아래와 같이 정의하고 있다.</p>
+
+<blockquote>
+  <p>A class or interface type T will be initialized immediately before the first occurrence of any one of the following:</p>
+
+  <ul>
+    <li>T is a class and an instance of T is created.</li>
+    <li>A <code class="language-plaintext highlighter-rouge">static</code> method declared by T is invoked.</li>
+    <li>A <code class="language-plaintext highlighter-rouge">static</code> field declared by T is assigned.</li>
+    <li>A <code class="language-plaintext highlighter-rouge">static</code> field declared by T is used and the field is not a constant variable (<a href="https://docs.oracle.com/javase/specs/jls/se8/html/jls-4.html#jls-4.12.4" title="4.12.4. final Variables">§4.12.4</a>).</li>
+  </ul>
+</blockquote>
+
+<p>위와 같이 초기화 시점에 대한 구체적인 케이스에 대해 표현되어있지만, 요약하자면 실제로 “필요한 시점에 초기화한다”가 핵심이며, 이때 필요한 시점이라는 것은 클래스에 정의된 필드, 메소드에 접근하는 최초 시점을 의미한다. 결국, 클래스 로딩 역시 최대한 lazy하게 수행하는 것이 자바의 스펙이다.<br />
+(클래스 초기화에 대한 참고용으로 위 JLS 문서의 클래스 초기화 예제들을 보면, 필요하지 않는 클래스는 절대 초기화하지 않도록 하는, 극단적으로 lazy하게 수행하도록 강제하는 것을 확인할 수 있다.)</p>
+
+<hr />
+<p>그럼 위와 같은 스펙에 대한 이해를 바탕으로 처음 ServiceA의 코드를 살펴보자.<br />
+결국 ServiceA의 코드는 애플리케이션 로딩 시점에 클래스 로딩을 강제할 요소가 전혀 없다. 그렇기 때문에 <code class="language-plaintext highlighter-rouge">ServiceA.getInstance()</code>함수가 호출되는 시점에서야 ServiceA의 로딩이 일어나게 된다.</p>
+
+<h2 id="해결방안">해결방안</h2>
+
+<p>처음으로 돌아가, 결국 문제의 원인은 ServiceA의 초기화 시점이 애플리케이션 구동 시점이 아닌 실제 사용 시점이기 때문이다.<br />
+그렇다면 해결 방법은 ServiceA를 애플리케이션 구동 시점에 초기화하도록 하면 된다.<br />
+이를 위한 구체적인 방법은 아래와 같다.</p>
+
+<p>아래 해결방안에 대해 부연설명을 추가하자면, ServiceA.getInstance() 를 Resource 레벨(스프링에서의 Controller)에서의 생성자에서 호출하고 있었는데, 결국 근본적으로 Resource가 지연 초기화 방식으로 동작하고 있었고, 그것으로 인해 발생한 문제라고 볼 수 있다.<br />
+Resource가 즉시 초기화가 된다면, Resource 초기화 시점에 ServiceA도 초기화가 될 것이기 때문에 결국 Resource를 즉시 초기화할 수 있는 방법에 대해 검토하였다.</p>
+
+<h3 id="1-spring과의-통합">1. Spring과의 통합</h3>
+
+<p>Spring은 필요한 빈을 애플리케이션 구동 시점에 eager하게 모두 로딩하는 것이 디폴트 설정이다.<br />
+그리고 아래와 같이 jersey-spring 의존성을 추가하면 Spring beans와 Jersey를 함께 사용할 수 있다.</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&lt;</span><span class="n">dependency</span><span class="o">&gt;</span>
+	<span class="o">&lt;</span><span class="n">groupId</span><span class="o">&gt;</span><span class="n">org</span><span class="o">.</span><span class="na">glassfish</span><span class="o">.</span><span class="na">jersey</span><span class="o">.</span><span class="na">ext</span><span class="o">&lt;/</span><span class="n">groupId</span><span class="o">&gt;</span>
+	<span class="o">&lt;</span><span class="n">artifactId</span><span class="o">&gt;</span><span class="n">jersey</span><span class="o">-</span><span class="n">spring3</span><span class="o">&lt;/</span><span class="n">artifactId</span><span class="o">&gt;</span>
+	<span class="o">&lt;</span><span class="n">version</span><span class="o">&gt;</span><span class="err">$</span><span class="o">{</span><span class="n">project</span><span class="o">.</span><span class="na">version</span><span class="o">}&lt;/</span><span class="n">version</span><span class="o">&gt;</span>
+<span class="o">&lt;/</span><span class="n">dependency</span><span class="o">&gt;</span>
+</code></pre></div></div>
+
+<p>예제 코드는 아래를 참고하면 된다.<br />
+<img src="https://github.com/user-attachments/assets/db10426a-9d20-4f95-a46b-ae246dc9f95d" alt="image" /></p>
+<ul>
+  <li><a href="https://github.com/eclipse-ee4j/jersey/blob/2.28/examples/helloworld-spring-webapp/src/main/java/org/glassfish/jersey/examples/helloworld/spring/SpringRequestResource.java">jersey/examples/helloworld-spring-webapp/src/main/java/org/glassfish/jersey/examples/helloworld/spring/SpringRequestResource.java at 2.28 · eclipse-ee4j/jersey · GitHub</a></li>
+</ul>
+
+<p>그러나 이 방법은 애플리케이션의 복잡도를 증가시키기 때문에 기각하였다.</p>
+
+<h3 id="2-immediate를-통한-해결">2. @Immediate를 통한 해결</h3>
+
+<p>위처럼 새로운 의존성을 추가하지 않고, 기존의 Jersey의 기능을 활용하여 해결할 수 있는 방법을 찾고자했다.</p>
+
+<p>Jersey는 의존성 주입(DI) 구현체로서 내부적으로 <a href="https://eclipse-ee4j.github.io/glassfish-hk2/">hk2</a>를 사용한다.<br />
+그리고 hk2에서도 <code class="language-plaintext highlighter-rouge">@Immediate</code> annotation을 통해 즉시 초기화를 지원한다.</p>
+
+<p>참고로, hk2는 디폴트 초기화 전략으로 지연 초기화를 채택하고 있다.<br />
+<img src="https://github.com/user-attachments/assets/5f0e4377-1b37-4658-881f-3d00754a6969" alt="image" /></p>
+<ul>
+  <li><a href="https://github.com/eclipse-ee4j/glassfish-hk2/blob/f80f98503c51ca9fd2f2b57def329b05dacab73a/hk2-api/src/main/java/org/glassfish/hk2/internal/ImmediateHelper.java#L93">glassfish-hk2/hk2-api/src/main/java/org/glassfish/hk2/internal/ImmediateHelper.java at f80f98503c51ca9fd2f2b57def329b05dacab73a · eclipse-ee4j/glassfish-hk2 · GitHub</a></li>
+  <li><img src="https://github.com/user-attachments/assets/fb5f702d-788c-4d27-8301-d89b8040a14f" alt="image" /></li>
+</ul>
+
+<p>그렇기 때문에 hk2에서 즉시 초기화를 하기 위해서는 <code class="language-plaintext highlighter-rouge">@Immediate</code> annotation을 통해 명시적으로 지정을 해주어야한다.</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Path</span><span class="o">(</span><span class="s">"/monitor/l7check.html"</span><span class="o">)</span>  
+<span class="nd">@Immediate</span>  
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">L7Resource</span> <span class="o">{</span>
+	<span class="c1">// 아래 세부 구현</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>그러나 이렇게만 설정하면 여전히 즉시 초기화가 일어나지 않는다. 그 이유는 위에서의 전역적인 초기화 전략이 여전히 지연 초기화로 설정되어 있기 때문이다.<br />
+따라서 아래와 같은 설정을 통해 전역 설정을 Immediate을 활성화하도록 변경해주어야한다.</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@ApplicationPath</span><span class="o">(</span><span class="s">"/"</span><span class="o">)</span>  
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">ApplicationConfig</span> <span class="kd">extends</span> <span class="nc">ResourceConfig</span> <span class="o">{</span>  
+  
+    <span class="nd">@Inject</span>  
+    <span class="kd">public</span> <span class="nf">ApplicationConfig</span><span class="o">(</span><span class="nc">ServiceLocator</span> <span class="n">serviceLocator</span><span class="o">)</span> <span class="o">{</span>  
+       <span class="nc">ServiceLocatorUtilities</span><span class="o">.</span><span class="na">enableImmediateScope</span><span class="o">(</span><span class="n">serviceLocator</span><span class="o">);</span>  
+       <span class="n">register</span><span class="o">(</span><span class="nc">L7Resource</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+       <span class="c1">// 후략</span>
+    <span class="o">}</span>
+</code></pre></div></div>
+
+<p>위와 같이 설정하면, 애플리케이션 구동 시점에 싱글턴 객체가 모두 애플리케이션 구동 시점에 즉시 초기화되는 것을 확인할 수 있다.</p>
+
+<h2 id="번외1-singleton의-구현에-따른-초기화-시점-차이">번외1. Singleton의 구현에 따른 초기화 시점 차이</h2>
+
+<p>아래 두가지 코드는 Java에서 싱글톤의 구현으로 흔하게 볼 수 있는 구현이다.</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ServiceA</span> <span class="o">{</span>  
+	
+	<span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">ServiceA</span> <span class="no">INSTANCE</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">ServiceA</span><span class="o">();</span>  
+  
+    <span class="kd">private</span> <span class="nf">ServiceA</span><span class="o">()</span> <span class="o">{</span>
+	    <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"ServiceA instantiated"</span><span class="o">);</span>
+    <span class="o">}</span>
+  
+    <span class="kd">public</span> <span class="kd">static</span> <span class="nc">ServiceA</span> <span class="nf">getInstance</span><span class="o">()</span> <span class="o">{</span>  
+        <span class="k">return</span> <span class="no">INSTANCE</span><span class="o">;</span>  
+    <span class="o">}</span>
+    
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">doNothing</span><span class="o">()</span> <span class="o">{}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ServiceB</span> <span class="o">{</span>  
+  
+    <span class="kd">private</span> <span class="nf">ServiceB</span><span class="o">()</span> <span class="o">{</span>
+	    <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"ServiceB instantiated"</span><span class="o">);</span>
+    <span class="o">}</span>
+  
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">class</span> <span class="nc">Singleton</span> <span class="o">{</span>  
+        <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">ServiceB</span> <span class="no">INSTANCE</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">ServiceB</span><span class="o">();</span>  
+    <span class="o">}</span>  
+  
+    <span class="kd">public</span> <span class="kd">static</span> <span class="nc">ServiceB</span> <span class="nf">getInstance</span><span class="o">()</span> <span class="o">{</span>  
+        <span class="k">return</span> <span class="nc">Singleton</span><span class="o">.</span><span class="na">INSTANCE</span><span class="o">;</span>  
+    <span class="o">}</span>  
+  
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">doNothing</span><span class="o">()</span> <span class="o">{}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>실제로 서비스 중인 코드에도 두가지 구현이 혼재되어 있었다.<br />
+사실 이 이슈를 살펴보기 전까지는 A와 B의 차이가 없다고 생각해서 무엇을 쓰든 상관없다고 생각했다. 왜냐하면, 애플리케이션 구동 시점에 모든 클래스가 항상 로딩된다고 생각했고, 그런 관점에서는 두 코드의 동작에 차이가 없기 때문이다.<br />
+그런데, 위에서 살펴본 것처럼 모든 클래스는 항상 로딩되는 것이 아니고 필요한 시점에서야 lazy하게 로딩됨을 알았다. 이 사실을 알고나면, 두 가지 구현은 실제 동작에서 분명한 차이가 발생한다.</p>
+
+<p>실제로 아래와 같은 코드를 수행해보면 그 차이를 명확하게 확인할 수 있다.</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">org.junit.jupiter.api.Test</span><span class="o">;</span>  
+  
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">TestRunner</span> <span class="o">{</span>  
+    
+    <span class="nd">@Test</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">testA</span><span class="o">(){</span>  
+        <span class="nc">ServiceA</span><span class="o">.</span><span class="na">doNothing</span><span class="o">();</span>  
+    <span class="o">}</span>  
+  
+    <span class="nd">@Test</span>  
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">testB</span><span class="o">(){</span>  
+        <span class="nc">ServiceB</span><span class="o">.</span><span class="na">doNothing</span><span class="o">();</span>  
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>테스트 수행 결과 <code class="language-plaintext highlighter-rouge">ServiceA instantiated</code>만 출력된다.</p>
+
+<p>ServiceA는 doNothing() static 메소드를 호출하면서 ServiceA 클래스가 로딩되고, 로딩될때 static 변수인 INSTANCE가 초기화된다.<br />
+그러나, ServiceB는 doNothing() static 메소드를 호출할때 ServiceB 클래스가 마찬가지로 로딩되지만, 이것이 ServiceB.Singleton 클래스의 로딩을 강제하지 않기 때문에, INSTANCE는 초기화되지 않는다. 그리고 실제로 ServiceB.getInstance()를 호출하는 시점에서야 ServiceB.Singleton 클래스가 로딩되면서 INSTANCE 객체가 초기화된다.<br />
+그리고 ServiceB의 구현 방식을 Lazy Holder 방식이라고 부르는 것 같고, 실제로 가장 많이 쓰인다고 한다.</p>
+
+<h2 id="번외2-spring과-지연-초기화">번외2. Spring과 지연 초기화</h2>
+
+<p>스프링 공식 문서에 따르면, 지연 초기화의 단점에 대해 아래와 같이 설명하면서, 디폴트로 지연 초기화가 아닌 즉시 초기화를 채택한 이유에 대해 설명하고 있다.</p>
+<blockquote>
+  <p> There are a few downsides to lazy initialization that mean we believe it’s better to opt-in once you have decided it makes sense to do so. Due to classes no longer being loaded and beans no longer being created until they’re needed, it’s possible for lazy initialization to mask a problem that previously would have been identified at startup. Such problems can include no class def found errors, out of memory errors, and failures due to misconfiguration.</p>
+</blockquote>
+
+<p>결국 fail-fast 관점에서 지연 초기화는 별로 바람직하지 않고, 빈 초기화에 실패한다면 애플리케이션 구동 시점에 빠르게 실패하는 것이 대부분의 경우 바람직하다.<br />
+(그외에 지연 초기화가 의미 있는 경우에 대해 궁금하다면 <a href="https://spring.io/blog/2019/03/14/lazy-initialization-in-spring-boot-2-2">Lazy Initialization in Spring Boot 2.2</a> 문서를 참고하면 좋을듯 하다)</p>
+
+<p>참고로 Spring에서도 지연 초기화를 활성화하고 싶다면 빈에 <code class="language-plaintext highlighter-rouge">@Lazy</code> annotation을 지정함으로써 활성화할 수 있으며, Spring boot 2.2 부터는 <code class="language-plaintext highlighter-rouge">spring.main.lazy-initialization=true</code> 설정을 통해 지연 초기화를 전역적으로 활성화할 수 있다.</p>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li>https://docs.oracle.com/javase/specs/jls/se8/html/jls-12.html#jls-12.4.1</li>
+  <li><a href="https://stackoverflow.com/questions/35344767/how-to-initialize-injected-value-before-rest-call">web services - How to initialize injected value before REST call? - Stack Overflow</a></li>
+  <li><a href="https://stackoverflow.com/questions/28114602/how-do-i-get-my-jersey-2-endpoints-to-eagerly-initialize-on-startup">java - How do I get my Jersey 2 Endpoints to eagerly initialize on startup? - Stack Overflow</a></li>
+  <li><a href="https://stackoverflow.com/questions/36186102/initialize-singleton-in-java-jersey-2-jax-rs">rest - Initialize singleton in Java Jersey 2 JAX-RS - Stack Overflow</a></li>
+  <li><a href="https://eclipse-ee4j.github.io/glassfish-hk2/">GlassFish HK2 - Dependency Injection Kernel</a></li>
+  <li><a href="https://github.com/eclipse-ee4j/glassfish-hk2">GitHub - eclipse-ee4j/glassfish-hk2: Dynamic dependency injection framework</a></li>
+  <li><a href="https://docs.spring.io/spring-boot/docs/2.2.3.RELEASE/reference/html/spring-boot-features.html#boot-features-lazy-initialization">Spring Boot Features</a></li>
+  <li><a href="https://effortguy.tistory.com/266">[Spring] Bean Lazy Initialization 사용법</a></li>
+  <li><a href="https://spring.io/blog/2019/03/14/lazy-initialization-in-spring-boot-2-2">Lazy Initialization in Spring Boot 2.2</a></li>
+  <li><a href="https://robin00q.tistory.com/87">단일체 패턴 (Singleton Pattern)</a></li>
+</ul>]]></content><author><name>ㅎㅅㅎ</name><email>dreamsh19@gmail.com</email></author><category term="Jersey" /><category term="Jersey" /><category term="Java" /><summary type="html"><![CDATA[이슈 현재 운영 중인 Jersey 기반의 서비스 중에 애플리케이션 구동 시점에 응답시간이 지연되는 이슈가 있었다. 구동 시점에만 이슈가 발생했기 때문에 무엇인가 초기화가 늦어지는 것으로 추측하고, 살펴보기 시작했다.]]></summary></entry><entry><title type="html">비동기 논블락킹에 대한 이해</title><link href="https://dreamsh19.github.io/async/%EB%B9%84%EB%8F%99%EA%B8%B0-%EB%85%BC%EB%B8%94%EB%9D%BD%ED%82%B9%EC%97%90-%EB%8C%80%ED%95%9C-%EC%9D%B4%ED%95%B4/" rel="alternate" type="text/html" title="비동기 논블락킹에 대한 이해" /><published>2024-11-08T00:00:00+09:00</published><updated>2024-11-08T00:00:00+09:00</updated><id>https://dreamsh19.github.io/async/%EB%B9%84%EB%8F%99%EA%B8%B0-%EB%85%BC%EB%B8%94%EB%9D%BD%ED%82%B9%EC%97%90-%EB%8C%80%ED%95%9C-%EC%9D%B4%ED%95%B4</id><content type="html" xml:base="https://dreamsh19.github.io/async/%EB%B9%84%EB%8F%99%EA%B8%B0-%EB%85%BC%EB%B8%94%EB%9D%BD%ED%82%B9%EC%97%90-%EB%8C%80%ED%95%9C-%EC%9D%B4%ED%95%B4/"><![CDATA[<h2 id="이슈">이슈</h2>
+
+<ul>
+  <li>코루틴에 대해서 공부하면서 이게 어떻게 JVM에서 동작하지?라는 의문을 가지고 헤맸던 경험이 있다.</li>
+  <li>결국 비동기 논블락킹에 대한 이해가 부족했던 것이고, 이 주제는 주기적으로(?) 헷갈리는 주제인 것 같다.</li>
+  <li>그래서 이번에 나만의 언어로 정리하는게 필요하다고 느껴져서 정리하게 됐다.</li>
+  <li>물론, 관련된 글은 이미 너무나 많지만, 정확하지 않은 정보로 인해 오히려 헷갈리는 경우가 있고, 각자의 언어로 표현하다보니 나에게는 와닿지 않는 경우가 많았다.</li>
+  <li>이 글은 사실 미래에 헷갈릴 나를 위한 글이다.</li>
+</ul>
+
+<h2 id="들어가며">들어가며</h2>
+
+<ul>
+  <li>이 글은 비동기 논블락킹에 대한 이론적 배경이나 구체적인 방법론 등을 설명하기 위한 글은 아니다.</li>
+  <li>비동기 논블락킹에 대한 이해를 쉽게 하는 것이 주 목적인 글이므로, 약간의 논리의 비약이 있을 수 있으나, 최대한 본질을 흐리지 않으며 작성하려고 했다.</li>
+</ul>
+
+<h2 id="결론">결론</h2>
+<ul>
+  <li>동기 vs 비동기는 “내 일을 동료한테 줄 수 있는가”의 관점이고,</li>
+  <li>블락킹 vs 논블락킹 “내가 다른 일을 할 수 있는가”의 관점이다.</li>
+  <li>그리고 중요한 건 결국 논블락킹이 목적이고, 비동기는 이를 위한 수단이다.
+    <ul>
+      <li>결국 자원 효율성 관점에서 내가 쉬지 않고 다른 일을 할 수 있는 게 중요한 거고, 내가 다른 일을 하기 위해서는 내가 하던 일을 동료에게 줄 수 있어야한다.</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="전제">전제</h2>
+
+<ul>
+  <li>비동기든 논블락킹이든 이 논의는 동일한 자원 상황에서의 “스레드의 스케줄링”에 대한 논의이다.
+    <ul>
+      <li>스레드의 스케줄링이라 함은 “누가 무슨 일을 할지”에 대한 논의이며, 그 목적은 당연하게도 누가 무슨 일을 해야 가장 효율적일까?에 있다.</li>
+      <li>그리고 여기서의 스레드는 “작업을 수행하는 주체”를 의미하고, 경우에 따라 OS 레벨의 프로세스 혹은 스레드가 될 수 있고, 언어 레벨에서는 고루틴, 코루틴과 같은 경량스레드가 될 수 있다.</li>
+    </ul>
+  </li>
+  <li>그리고 이 논의를 위해서는 I/O time이 있는 작업이라는 전제가 필요하다.
+    <ul>
+      <li>애초에 cpu만 사용하는 작업만 있는 경우 코어 수나 클락 수를 늘리지 않는 이상 스레드의 스케줄링만으로는 개선할 여지가 없고, (스케줄링을 통해서 해결할 수 있는 건 starvation 등의 자원의 분배 문제이지, 효율은 개선될 수 없다)</li>
+      <li>결국 비동기든 논블락킹이든 I/O time 때 스레드가 유휴상태인 채로 점유된 것을 개선하기 위한 것들이기 때문이다.</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="비유를-통해-이해해보자">비유를 통해 이해해보자.</h2>
+
+<p>손님에게 주문을 받고 주문받은 음료를 주는 카페 알바를 떠올려보자. Server의 어원 그 자체라고 할 수 있다.<br />
+그리고 I/O 작업은 커피머신에 커피를 내리는 작업에 비유할 수 있다. (커피머신이 커피를 내리는 시간은 알바가 아무리 뭘해도 컨트롤할 수 있는 영역이 아니다.)<br />
+굳이 따지자면 cpu 작업은 커피머신을 사용하지 않는 모든 작업(계산을 한다던가, 얼음을 넣는다던가 등)에 비유할 수 있다.</p>
+
+<p>이러한 관점에서 아래 상황들을 떠올려보자.</p>
+
+<h2 id="동기-vs-비동기">동기 vs 비동기</h2>
+
+<ul>
+  <li>동기는 내 일을 동료한테 줄 수 없는 형태의 스케줄링이다.</li>
+  <li>비동기는 내 일을 동료한테 줄 수 있는 형태의 스케줄링이다.</li>
+</ul>
+
+<p>그럼 여기서 동기의 관점을 우선 살펴보자.<br />
+동기는 일을 동료한테 줄 수 없다. 이 말은 곧, 동료가 없다는 것과 같다고 볼 수 있고, 동료가 없다는 건 곧 혼자 일한다고 볼 수 있다.<br />
+즉, 싱글 스레드라고 취급할 수 있다.<br />
+여기서 싱글스레드라고 하면 수많은 동기 방식의 멀티스레드 프레임워크들은 무엇인가?에 대한 의문을 가질 수 있다.<br />
+그런데 동기 방식의 멀티스레드는 스레드가 여러개이긴 하나 스레드 간에 협력이랄게 없고, 각각의 스레드가 “독립적으로” n개의 작업을 할 뿐이다.<br />
+결국 멀티스레드라고 해도 각자 할 일을 하는 싱글스레드 * n개 밖에 되지 않는다.</p>
+
+<p>이어서 비동기 관점을 살펴보자.<br />
+비동기 방식은 내 일을 동료한테 줄 수 있다는 것인데, 이것은 다시 말하면 일단 동료가 있어야한다는 것을 의미한다.<br />
+즉, 멀티스레드가 전제가 되어야한다.<br />
+(정확히는 비동기 방식이 반드시 멀티스레드일 필요는 없다. 예를 들어, 비동기 방식의 코드를 싱글 스레드로 실행하면 실행은 된다. 다만 이 상황은 내 일을 동료한테 줬는데 그 동료가 나인 경우이다. 즉, 결과적으로 따지고보면 어차피 내가 다하고 있는 거고, 그렇다면 굳이 비동기 방식이 갖는 이점이 없는 것이다. 이 말은 곧 비동기 방식이 “의미가 있으려면” 멀티스레드가 전제되어야 한다는 것을 뜻한다.)</p>
+
+<p>멀티스레드를 전제로 하고 마저 살펴보면,<br />
+내 일을 동료한테 줄 수 있다는 것은 결국 스레드간 “협력”이 가능하다는 것을 의미한다. coroutine의 “co”가 cooperative인 것도 이와 같은 맥락이다.<br />
+비동기 방식에서 늘 나오는 얘기인 콜백도 결국 “협력”하는 한 방법 중에 하나일 뿐이다.</p>
+
+<p>카페 알바의 예로 보면, 동기 방식은 내가 주문받은 손님은 내가 반드시 음료를 줘야하는 방식이다.<br />
+반면에, 비동기 방식은 주문은 내가 받았지만 음료를 주는 건 동료일 수 있다.</p>
+
+<h2 id="블락킹-vs-논블락킹">블락킹 vs 논블락킹</h2>
+
+<ul>
+  <li>블락킹은 내가 다른 일을 할 수 없는 관점이다.</li>
+  <li>논블락킹은 내가 다른 일을 할 수 있는 관점이다.</li>
+</ul>
+
+<p>카페 알바의 예로 보면, 블락킹 방식은 커피머신이 커피를 내리는 동안 아무 일도 하지 못하는 방식이다. (커피머신을 멀뚱멀뚱 쳐다본다던가, 커피 잔을 손으로 계속 들고 있어야된다고 생각해도 될 것 같다.)<br />
+반면에, 논블락킹 방식은 커피머신에 커피를 내리고 나서 주문을 받을 수 있는 방식이다.</p>
+
+<p>블락킹 방식은 답답하기는 하지만, 커피머신이 커피를 다 내렸을 때 어떻게하지?에 대한 걱정은 없다.<br />
+다만, 논블락킹 방식은 누가봐도 효율적이다. 그런데 커피머신이 커피를 다 내리고 나면 이 커피는 어떻게 하지?에 대한 걱정을 하게 된다.<br />
+여기서 비동기와의 연결점이 발생한다.<br />
+동기 방식은 이 일을 동료한테 줄 수 없기 때문에, 커피를 다 내리고 나면 커피를 손님한테 건네주는 것도 내가 해야한다.<br />
+즉, 커피머신의 작업에 대한 완료처리를 계속 신경을 써야한다는 것이고, 결국 스레드가 이걸로부터 자유로울 수 없다.<br />
+그런데, 비동기 방식은 이 일을 동료한테 줄 수 있고, 커피가 다 내려지면 손님에게 건내줘라는 걸 동료한테 전달할 수 있게 되고 그러면 나는 이 일로부터 자유로워질 수 있다.</p>
+
+<h2 id="네-가지-조합에-대해-살펴보자">네 가지 조합에 대해 살펴보자</h2>
+
+<p>위의 관점에서 동기와 비동기 그리고 블락킹과 논블락킹이 어떤 관점인지 살펴보았으니, 2x2 조합 각각에 대해 구체적으로 떠올려보자.</p>
+
+<h3 id="동기-블락킹">동기 블락킹</h3>
+
+<p>가장 기초적인 모델이다.<br />
+내 일을 동료한테 줄 수도 없고, 다른 일을 할 수도 없다.<br />
+결국 싱글 스레드의 sequential한 모델을 떠올릴 수 있다.</p>
+
+<p>예상하겠지만, 싱글 스레드의 문제와 순차 수행의 문제를 갖고 있다.</p>
+
+<h3 id="동기-논블락킹">동기 논블락킹</h3>
+
+<p>내 일을 동료한테 줄 수 없으나, 다른 일을 할 수 있다.<br />
+커피 머신에 커피를 내리게 한 다음에 주문을 받을 수 있다.<br />
+커피를 내리는 동안 손님을 받을 수 있으니까, 동기 블락킹을 방식보다 효율적이다.</p>
+
+<p>그럼 뭐가 문제일까?<br />
+싱글 스레드의 문제를 가져간다. 즉, 점유되는 경우 다른 작업들이 같이 지연된다는 단점이 있다.<br />
+예를 들어, 위의 상황에서 주문을 받는데 주문받는게 오래걸린다면(스레드를 점유한다면) 커피 머신이 커피를 다 내렸어도 이전 손님에게 커피를 주지 못한다.</p>
+
+<h3 id="비동기-블락킹">비동기 블락킹</h3>
+
+<p>내 일을 동료한테 줄 수 있으나, 다른 일을 할 수 없다.<br />
+보자마자 이런 생각이 든다. “다른 일을 할 수 없는데 동료한테 왜 줘?”<br />
+그리고 이 생각은 실제로 비동기 블락킹 방식이 자연스럽지 않고, 잘 사용되지 않는 이유를 관통하는 관점이다.<br />
+Java의 CompletableFuture의 get() 함수를 호출하면 비동기지만 스레드가 블락되는 방식으로 동작한다.</p>
+
+<h3 id="비동기-논블락킹">비동기 논블락킹</h3>
+
+<p>내 일을 동료한테 줄 수 있고, 다른 일도 할 수 있다.<br />
+동기 논블락킹에서의 싱글 스레드 문제를 해결할 수 있다.<br />
+예를 들어, 스레드가 점유당한다면, 동료가 대신 커피를 줄 수 있다.<br />
+그리고 내 일을 동료에게 준 순간 나와 일, 즉 스레드와 자유의 몸이 됐으므로, 새로운 주문을 받던 이미 다른 동료가 받은 주문에 대한 커피를 손님에게 내어주던, 어떤 작업이든 시작할 수 있다.</p>
+
+<h2 id="앞으로-남은-것">앞으로 남은 것</h2>
+
+<p>위에서 개념적으로 이해한 것들을 코딩으로 실제로 구현해보고 확인하면 좀 더 확실하게 정리될 것 같다.<br />
+코드 기준으로 설명한 것들로 2편을 작성하는 것을 목표로 해야겠다.</p>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li><a href="https://www.quora.com/Why-is-threading-useful-on-a-single-core-processor">Why is threading useful on a single core processor? - Quora</a></li>
+  <li><a href="https://engineering.linecorp.com/ko/blog/do-not-block-the-event-loop-part2">비동기 서버에서 이벤트 루프를 블록하면 안 되는 이유 2부 - Java NIO와 멀티플렉싱 기반의 다중 접속 서버</a></li>
+</ul>]]></content><author><name>ㅎㅅㅎ</name><email>dreamsh19@gmail.com</email></author><category term="Async" /><summary type="html"><![CDATA[이슈]]></summary></entry><entry><title type="html">Git commit hash는 어떻게 만들어질까</title><link href="https://dreamsh19.github.io/git/Git-commit-hash%EB%8A%94-%EC%96%B4%EB%96%BB%EA%B2%8C-%EB%A7%8C%EB%93%A4%EC%96%B4%EC%A7%88%EA%B9%8C/" rel="alternate" type="text/html" title="Git commit hash는 어떻게 만들어질까" /><published>2024-10-26T00:00:00+09:00</published><updated>2024-10-26T00:00:00+09:00</updated><id>https://dreamsh19.github.io/git/Git-commit-hash%EB%8A%94-%EC%96%B4%EB%96%BB%EA%B2%8C-%EB%A7%8C%EB%93%A4%EC%96%B4%EC%A7%88%EA%B9%8C</id><content type="html" xml:base="https://dreamsh19.github.io/git/Git-commit-hash%EB%8A%94-%EC%96%B4%EB%96%BB%EA%B2%8C-%EB%A7%8C%EB%93%A4%EC%96%B4%EC%A7%88%EA%B9%8C/"><![CDATA[<h2 id="이슈">이슈</h2>
+<ul>
+  <li>개발을 하다보면 git rebase를 자주 사용하는데, rebase 할때 실제 반영되는 내용이 동일한데도 commit hash가 바뀌는 것을 보고, 커밋 시간이나 부모 커밋 등의 정보가 달라졌으니 hash값이 달라지는구나 정도로 어렴풋이 추측만 했다.</li>
+  <li>그렇다면 서로 다른 커밋을 “다르다”라고 판단하는 기준이 무엇일까가 궁금해졌고,</li>
+  <li>어렴풋이 추측만 하던, git에서의 id 체계인 commit hash가 어떻게 만들어지는지에 대해 살펴보았다.</li>
+</ul>
+
+<h2 id="결론">결론</h2>
+
+<p>결론부터 얘기하자면, 임의의 git repository에 진입해서 아래 명령어를 수행하면, 현재 위치한 HEAD의 commit hash를 재현해낼 수 있다.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span><span class="nb">printf</span> <span class="s2">"commit %s</span><span class="se">\0</span><span class="s2">"</span> <span class="si">$(</span>git <span class="nt">--no-replace-objects</span> cat-file commit HEAD | <span class="nb">wc</span> <span class="nt">-c</span><span class="si">)</span><span class="p">;</span> git cat-file commit HEAD<span class="o">)</span> | <span class="nb">sha1sum</span>
+<span class="c"># 출처 : https://gist.github.com/masak/2415865#file-explanation-md</span>
+</code></pre></div></div>
+
+<p>위 명령어를 수행하고, <code class="language-plaintext highlighter-rouge">git show -s</code> 명령어를 통해 현재 commit hash를 확인해보면 동일한 것을 확인 할 수 있다.</p>
+
+<p>아래는 직접 확인해본 결과이다. 역시나 동일함을 확인할 수 있다.<br />
+<img src="https://github.com/user-attachments/assets/e1ccf805-c939-4292-8e05-0e09548fd7f2" alt="image" /></p>
+
+<p>그렇다면, 위 명령어에 대해 하나씩 살펴보자.<br />
+우선 마지막의 sha1sum 명령어는 단순 해싱 함수이고, 본 글에서는 hash 함수의 input이 궁금한 것이므로 미뤄두자.</p>
+
+<p>눈에 띄는 것은 <code class="language-plaintext highlighter-rouge">git cat-file commit HEAD</code> 명령어가 결국 주요한 input으로 보인다. (앞의 printf 파트는 해당 명령어의 바이트수를 포맷팅하여 출력하는 정도이므로)</p>
+
+<p>그렇다면 <code class="language-plaintext highlighter-rouge">git cat-file commit HEAD</code> 명령어는 대체 어떤 내용을 담고 있는지 살펴보자.</p>
+
+<h2 id="확인을-위한-간단한-구성">확인을 위한 간단한 구성</h2>
+
+<p>살펴보기 전에 간단한 git repository를 아래와 같이 생성하여, 해당 repository 하에서 내용을 확인하였다.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">mkdir </span>git-hash <span class="o">&amp;&amp;</span> <span class="nb">cd </span>git-hash
+git init
+<span class="nb">touch </span>README.md
+git add <span class="nb">.</span> <span class="o">&amp;&amp;</span> git commit <span class="nt">-m</span> <span class="s2">"Intial commit"</span>
+<span class="nb">echo</span> <span class="s2">"Hello World"</span> <span class="o">&gt;&gt;</span> README.md
+git add <span class="nb">.</span> <span class="o">&amp;&amp;</span> git commit <span class="nt">-m</span> <span class="s2">"Add Hello World to README"</span>
+</code></pre></div></div>
+
+<h2 id="git-cat-file-commit-상세">git cat-file commit 상세</h2>
+
+<p>우선 git cat-file 명령어는 git의 object에 대한 세부정보를 출력해주는 명령어이다.<br />
+여기서 object란 git에서 내부적으로 리소스를 관리할때 사용하는 객체이며, commit도 object의 한 종류이다.<br />
+결국 <code class="language-plaintext highlighter-rouge">git cat-file commit HEAD</code> 명령어는 현재(HEAD) 커밋에 대한 세부정보를 출력해줘 정도의 명령어이다.</p>
+
+<p>실제로 명령어를 통해 출력한 결과는 아래와 같다.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>user@server ~/sources/git-hash]<span class="nv">$ </span>git cat-file commit HEAD
+tree db78f3594ec0683f5d857ef731df0d860f14f2b2
+parent c612c9316c74c3f7489135e18545a2082e5ebd0e
+author Seung-Hun Han &lt;dreamsh19@gmail.com&gt; 1730020485 +0900
+committer Seung-Hun Han &lt;dreamsh19@gmail.com&gt; 1730020485 +0900
+
+Add Hello World to README
+</code></pre></div></div>
+
+<p>크게 5개(tree, parent, author, committer, commit message)로 구성된 것을 확인할 수 있다. 각각에 대해 살펴보자.</p>
+
+<h3 id="tree">tree</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>tree db78f3594ec0683f5d857ef731df0d860f14f2b2
+</code></pre></div></div>
+
+<p>해당 커밋 상태에서의 모든 파일에 대한 스냅샷(으로 부터 추출된 hash값)이다.<br />
+참고로, git에서의 tree는 git 내부적으로 사용하는 자체 파일 시스템 정도로 이해할 수 있다. git에서 자체 파일 시스템이 필요한 이유는 버저닝에 특화되어 있어야하고, 특정 파일 시스템에 종속되지 않아야하는 등의 요구사항이 필요하기 때문이다.</p>
+
+<p>결국 파일의 내용(blob)이 변경되면 hash값이 바뀐다. 정도로 이해하면 될 것 같고, 커밋의 고유성을 결정할때 가장 직관적인 기준이다. 그리고 tree hash 외의 다른 4개의 항목들은 모두 commit 자체에 대한 메타데이터인 반면, 파일의 내용에 대한 항목은 tree hash가 유일하다.</p>
+
+<p>하지만 예상하겠지만, 파일의 내용만으로는 커밋의 고유성을 보장할 수 없다. (나머지 4개 항목이 필요한 이유이기도 하다.)</p>
+
+<p>간단한 예로, 커밋 A를 수행하고 바로 A를 revert하는 경우를 떠올려보면, 파일의 내용은 달라진게 없지만 2개의 추가적인 커밋이 발생했고, git에서는 이를 구별해야한다.<br />
+실제로 확인해보자. README에 “Mistakes” 문구를 추가했다가 곧바로 revert하고 git cat-file commit 명령어를 수행해보았다.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[user@server ~/sources/git-hash]<span class="nv">$ </span><span class="nb">echo</span> <span class="s2">"Mistakes"</span> <span class="o">&gt;&gt;</span> README.md
+[user@server ~/sources/git-hash]<span class="nv">$ </span>git add <span class="nb">.</span> <span class="o">&amp;&amp;</span> git commit <span class="nt">-m</span> <span class="s2">"Made a mistake"</span>
+<span class="o">[</span>main 1f002c2] Made a mistake
+ 1 file changed, 1 insertion<span class="o">(</span>+<span class="o">)</span>
+[user@server ~/sources/git-hash]<span class="nv">$ </span>git revert HEAD
+<span class="o">[</span>main 3b9a0c2] Revert <span class="s2">"Made a mistake"</span>
+ 1 file changed, 1 deletion<span class="o">(</span>-<span class="o">)</span>
+Revert <span class="s2">"Made a mistake"</span>
+
+This reverts commit 1f002c2bf3f8f779f73db79a88cb7575a77eab91.
+[user@server ~/sources/git-hash]<span class="nv">$ </span>git cat-file commit HEAD
+tree db78f3594ec0683f5d857ef731df0d860f14f2b2
+parent 1f002c2bf3f8f779f73db79a88cb7575a77eab91
+author Seung-Hun Han &lt;dreamsh19@gmail.com&gt; 1730022719 +0900
+committer Seung-Hun Han &lt;dreamsh19@gmail.com&gt; 1730022719 +0900
+
+Revert <span class="s2">"Made a mistake"</span>
+
+This reverts commit 1f002c2bf3f8f779f73db79a88cb7575a77eab91.
+</code></pre></div></div>
+
+<p>여기서 확인할 수 있는 것은, 2개의 커밋이 발생했음에도 마지막 명령어 결과에서 tree hash값은 <code class="language-plaintext highlighter-rouge">db78f35...</code>으로 동일한 것을 확인할 수 있다.</p>
+
+<h3 id="parent">parent</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>parent c612c9316c74c3f7489135e18545a2082e5ebd0e
+</code></pre></div></div>
+
+<p>부모 커밋의 hash값이다.<br />
+커밋의 parent 정보는 다른 커밋과의 관계를 정의하는 유일한 정보이기 때문에, 커밋의 고유성을 결정하기에 필수적인 정보이다.<br />
+실제로 같은 tree hash를 가지는 서로 다른 커밋이 있다고 하더라도, 부모 커밋이 다르다면 전혀 다른 커밋이 된다. 당장 위의 revert 예시에서도 동일한 tree hash지만 parent 정보가 다름으로 인해 구별할 수 있다.</p>
+
+<h3 id="author-committer">author, committer</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>author Seung-Hun Han &lt;dreamsh19@gmail.com&gt; 1730020485 +0900
+committer Seung-Hun Han &lt;dreamsh19@gmail.com&gt; 1730020485 +0900
+</code></pre></div></div>
+
+<p>author와 committer의 정보와 시간 정보가 담겨 있다.<br />
+(author와 committer의 차이에 대해서는 자세히 다루지 않겠다. 궁금하다면 <a href="https://git-scm.com/book/en/v2/Git-Basics-Viewing-the-Commit-History">Git - Viewing the Commit History</a> 를 참고하면 된다.)<br />
+git은 기본적으로 협업을 위한 프로그램이기 때문에 author, committer 정보가 중요할 수 밖에 없다. 같은 부모 커밋에서 같은 내용을 커밋하더라도 수행하는 사람이 다르다면, 서로 다른 커밋으로 취급한다.</p>
+
+<p>개인적으로 author와 commiter 정보에서 특이하다고 느낀 점은 두가지인데, 첫번째는 시간의 정밀도가 초단위까지밖에 없다는 것이고, 두번째는 타임존 정보를 포함하고 있다는 것이다.</p>
+
+<h4 id="1-초단위-정밀도">1. 초단위 정밀도</h4>
+<p>시간 정보는 Unix timestamp로 표현되어있는데, <code class="language-plaintext highlighter-rouge">1730020485</code>로 초단위 정밀도이다.<br />
+그러면 자연스럽게 “1초 내에 동일한 커밋을 두 번하면 어떻게 되는거지?” 라는 생각이 든다.<br />
+그래서 직접 해보았다. main을 부모 커밋으로 가지는 서로 다른 두개의 브랜치를 만들고 각 브랜치에서 똑같은 커밋을 1초 내로 수행해보았다.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">for </span>i <span class="k">in</span> <span class="o">{</span>1..2<span class="o">}</span><span class="p">;</span> <span class="k">do 
+	</span>git checkout main<span class="p">;</span>
+	git checkout <span class="nt">-b</span> branch-<span class="k">${</span><span class="nv">i</span><span class="k">}</span><span class="p">;</span>
+	<span class="nb">touch </span>file.tmp<span class="p">;</span>
+	git add <span class="nb">.</span> <span class="o">&amp;&amp;</span> git commit <span class="nt">-m</span> <span class="s2">"Create file.tmp"</span><span class="p">;</span> 
+<span class="k">done</span>
+</code></pre></div></div>
+
+<p>결과는 놀랍게도 동일한 커밋으로 취급되었다. (실제로 커밋은 두 번 발생했음에도)</p>
+
+<p><img src="https://github.com/user-attachments/assets/4a9a110b-1bc8-4368-b6a0-60d1a106755c" alt="image" /></p>
+
+<p>그리고 위 명령어 마지막에 <code class="language-plaintext highlighter-rouge">sleep 1;</code> 을 추가하여 확인해보니 서로 다른 커밋으로 취급되었다.</p>
+
+<p>그리고 초단위 정밀도를 가지는 걸 이상하게 생각한 것은 나 뿐만이 아닌듯 하다.<br />
+<a href="https://stackoverflow.com/a/28238046">What is the resolution of Git’s commit-date or author-date timestamps? - Stack Overflow</a><br />
+위 링크에서 보면, 실제로 같은 커밋을 1초 내에 두번하면 하나의 커밋으로 취급된다는 내용이 있다.</p>
+
+<h4 id="2-타임존-정보">2. 타임존 정보</h4>
+
+<p>위에서 살펴보았듯이 시간 정보는 Unix timestamp로 저장되고, Unix timestamp는 타임존에 독립적인데, 타임존 정보가 포함된 것이 의아했다.<br />
+처음에는 “타임존 정보가 굳이 포함될 필요가 있을까?”라는 관점에서 의아했으나, 애초에 커밋 정보에 타임존 정보를 포함하고 있으니, 굳이 제외하지 않았다 정도의 관점으로 받아들이면 이상할 것도 없을 듯하다.<br />
+물론, 동일한 커밋을 같은 순간에(1초 내) 서로 다른 타임존에서 수행하면 다른 커밋 hash가 도출되고, 서로 다른 커밋으로 간주된다.(아래는 실험 결과)</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">for </span>i <span class="k">in</span> <span class="o">{</span>3..4<span class="o">}</span><span class="p">;</span> <span class="k">do 
+	</span>git checkout main<span class="p">;</span>
+	git checkout <span class="nt">-b</span> branch-<span class="k">${</span><span class="nv">i</span><span class="k">}</span><span class="p">;</span>
+	<span class="nb">touch </span>file.tmp<span class="p">;</span>
+	git add .<span class="p">;</span>
+	<span class="nv">GIT_COMMITTER_DATE</span><span class="o">=</span><span class="s2">"</span><span class="si">$(</span><span class="nv">TZ</span><span class="o">=</span>UTC+<span class="k">${</span><span class="nv">i</span><span class="k">}</span> <span class="nb">date</span> <span class="nt">-R</span><span class="si">)</span><span class="s2">"</span> git commit <span class="nt">-m</span> <span class="s2">"Create file.tmp"</span><span class="p">;</span>
+<span class="k">done</span>
+</code></pre></div></div>
+
+<p><img src="https://github.com/user-attachments/assets/99329a35-b19b-451e-8a7e-488e436a785a" alt="image" /></p>
+
+<h3 id="commit-message">commit message</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Add Hello World to README
+</code></pre></div></div>
+
+<p>커밋의 “이름” 정도라고 보면, 직관적으로는 커밋의 고유성을 위한 key로 채택함에 있어서 큰 무리가 없을 듯 하다.</p>
+
+<p>다만, commit message를 포함하는데 있어서 개인적인 생각을 덧붙여보자면,<br />
+위의 네 가지 항목들은 커밋을 했을때 git에 의해 자동으로 결정되는 것들이지, “개발자가 명시적으로” 커밋의 고유성을 위해 지정할 수 있는 항목들은 아니다. (커밋 시간 등을 조정하면 할 수야 있지만 시간을 조정해서 고유성을 확보하는 것이 자연스럽진 않다고 생각이 된다.)<br />
+따라서 commit message는 개발자가 명시적으로 커밋의 고유성을 부여하기 위한 수단으로 볼 수 있다.<br />
+정확한 비유는 아니지만 일란성 쌍둥이지만 이름으로 구별할수 있게 하겠다.. 정도로 생각했다. (일란성 쌍둥이지만 태어난 시간으로 구별하는 건 자연스럽지 않으니..)</p>
+
+<h2 id="헤더-정보">헤더 정보</h2>
+
+<p>위에서 <code class="language-plaintext highlighter-rouge">git cat-file commit HEAD</code> 명령어에 대해서는 자세히 살펴보았고, 이제 commit의 고유성을 결정하는 5가지 요소에 대해서는 모두 알게 되었다.<br />
+그렇다면 글 도입부 <code class="language-plaintext highlighter-rouge">printf</code> 파트에서 보면 “commit 바이트수\0”를 포함하고 있는데, 이 정보는 무엇일까?</p>
+
+<p>commit도 object 중 하나라는 점에서 눈치챘을 수도 있지만,<br />
+사실 git은 모든 것을 object 라는 개념으로 관리하고, 이 object의 id 체계로 hash를 활용하고 있다. commit hash도 이 중 하나일 뿐이다. (위에서 tree가 hash 값을 가지는 것도 같은 이유이다.)<br />
+그리고 object의 id를 생성할때 다음과 같이 일관된 형태로 해싱 함수의 input을 구성한다.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;type&gt; &lt;size&gt;\0&lt;content&gt;
+</code></pre></div></div>
+
+<p>이때 <code class="language-plaintext highlighter-rouge">&lt;content&gt;</code>를 제외한 <code class="language-plaintext highlighter-rouge">&lt;type&gt; &lt;size&gt;\0</code> 부분을 git에서는 헤더라고 한다.</p>
+
+<p>실제 git의 소스 코드 <a href="https://github.com/git/git/blob/v2.47.0/object-file.c#L1140-L1155">git/object-file.c at v2.47.0 · git/git · GitHub</a>를 살펴보면 아래와 같은 코드로 헤더를 생성함을 확인할 수 있다.<br />
+(아래는 2.47.0 버전 상의 소스 코드이나, 이전 버전에서도 코드의 형태는 조금씩 다르지만 동일한 로직을 가진다.)<br />
+<img src="https://github.com/user-attachments/assets/fd51472a-20d5-46a6-b032-e6271480e061" alt="image" /></p>
+
+<p>결국 <code class="language-plaintext highlighter-rouge">&lt;type&gt; &lt;size&gt;</code>의 형태로 포맷팅하고, 마지막의 +1을 통해 null character를 할당하는 로직이다.<br />
+여기서의 type은 object의 타입이며 글의 도입부에 <code class="language-plaintext highlighter-rouge">commit</code>이라는 고정 문자열이 입력된 것도 <code class="language-plaintext highlighter-rouge">commit</code> 타입임을 명시하는 것이다.<br />
+그리고 size는 content의 바이트 수이다. 사실 content에 종속된 정보라 불필요한 정보라고 생각될 수 있지만, 파일 시스템 상의 오류로 content 상의 불일치가 발생한 경우, 이를 탐지하기 위한 장치이다.</p>
+
+<h2 id="sha1-해싱">SHA1 해싱</h2>
+
+<p>여기까지 하면, hash 함수의 input에 대해서는 모두 살펴보았고, 결국 해당 input에 SHA1 해싱을 통해 최종적인 hash값을 도출해낸다.<br />
+그런데 SHA1 알고리즘은 컴퓨팅 파워의 증가로, 보안 취약점을 갖고 있는 알고리즘이 되어버렸고, 해시 충돌로 인한 위험성이 있는 것으로 밝혀졌다.</p>
+
+<p>Git에서도 이를 인지하고 있고, 더 안전한 SHA256으로의 전환을 점진적으로 추진한다고 한다.<br />
+그리고 기존 SHA1 시스템에서의 해시 충돌 문제를 방지하기 위해 Github에서는 해시 충돌이 발생한 경우 이를 탐지하고 실패처리하는 것을 이미 적용하고 있다. 실제로 Git 프로젝트를 보면 해시 충돌 방지에 대한 <a href="https://github.com/cr-marcstevens/sha1collisiondetection/">소스</a>를 submodule로 관리하고 있음을 확인할 수 있다.</p>
+
+<h3 id="hash-충돌이-문제가-되는-이유">Hash 충돌이 문제가 되는 이유</h3>
+
+<p>앞서 언급했듯이, git에서 hash값은 곧 id이다. id 체계는 유니크함을 보장하는 것이 필수적이나, 해시 충돌이 발생한다면 유니크함이 보장되지 않게 된다.</p>
+
+<p>단적인 예로, 파일 A의 해시값이 abcde라고 하고. 악의적인 사용자가 abcde의 해시값을 도출해내는 다른 파일 B를 찾아낸 상황을 가정하자. 악의적인 사용자는 B 기반의 코드로 문제가 없음을 증명한 후 main 브랜치에 머지를 하려고 하면, git은 A와 B가 다르다는 걸 인지하지 못하게 된다. 결국 별 문제 없이 코드가 머지될 수 있고, 최종적으로 저장소에는 머지가 됐음에도 여전히 파일 A로 남아있게 되고, 동작하지 않는 전혀 다른 코드가 되어버린다.</p>
+
+<p>물론, 아주 단적인 예일 뿐이고, 애초에 id 체계의 근간을 흔들 수 있기 때문에 많은 문제가 발생할 수 있다.</p>
+
+<h2 id="요약">요약</h2>
+
+<p>내용이 길었지만 결국 commit hash 만드는 과정을 요약하면 아래와 같다.</p>
+
+<ul>
+  <li>git의 commit의 hash는 5가지 요소(파일 내용의 스냅샷, 부모 커밋, author, committer 정보, 커밋 메시지)에 의해 결정된다.</li>
+  <li>그리고 추가적인 헤더 정보(object 타입, 바이트 수)를 추가하며, 이는 commit에 한정된 것은 아니고 object 모두에 해당된다.</li>
+  <li>위의 결과에 SHA1 해싱을 적용하여 최종적인 값으로 채택한다.</li>
+</ul>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li><a href="https://gist.github.com/masak/2415865">How is git commit sha1 formed · GitHub</a></li>
+  <li><a href="https://git-scm.com/docs/git-cat-file">Git - git-cat-file Documentation</a></li>
+  <li><a href="https://github.com/git/git">GitHub - git/git: Git Source Code Mirror - This is a publish-only repository but pull requests can be turned into patches to the mailing list via GitGitGadget (https://gitgitgadget.github.io/). Please follow Documentation/SubmittingPatches procedure for any of your improvements.</a></li>
+  <li><a href="https://git-scm.com/book/en/v2/Git-Basics-Viewing-the-Commit-History">Git - Viewing the Commit History</a></li>
+  <li><a href="https://stackoverflow.com/a/28238046">What is the resolution of Git’s commit-date or author-date timestamps? - Stack Overflow</a></li>
+  <li><a href="https://stackoverflow.com/a/70266188">Why do git objects include a length and a delimiter as metadata? - Stack Overflow</a></li>
+  <li><a href="https://noah-ios.dev/how-to-generate-commit-id/">Git의 commit id는 어떻게 생성될까?</a></li>
+  <li><a href="https://github.blog/news-insights/company-news/sha-1-collision-detection-on-github-com/">SHA-1 collision detection on GitHub.com - The GitHub Blog</a></li>
+  <li><a href="https://thenewstack.io/git-transitioning-away-from-the-aging-sha-1-hash/">Git Transitioning Away from the Aging SHA-1 Hash - The New Stack</a></li>
+</ul>]]></content><author><name>ㅎㅅㅎ</name><email>dreamsh19@gmail.com</email></author><category term="Git" /><category term="Git" /><category term="Hash" /><summary type="html"><![CDATA[이슈 개발을 하다보면 git rebase를 자주 사용하는데, rebase 할때 실제 반영되는 내용이 동일한데도 commit hash가 바뀌는 것을 보고, 커밋 시간이나 부모 커밋 등의 정보가 달라졌으니 hash값이 달라지는구나 정도로 어렴풋이 추측만 했다. 그렇다면 서로 다른 커밋을 “다르다”라고 판단하는 기준이 무엇일까가 궁금해졌고, 어렴풋이 추측만 하던, git에서의 id 체계인 commit hash가 어떻게 만들어지는지에 대해 살펴보았다.]]></summary></entry><entry><title type="html">Airflow DockerOperator의 Private registry 장애전파 방지(LazyLoginDockerOperator 구현기)</title><link href="https://dreamsh19.github.io/airflow/Airflow-DockerOperator%EC%9D%98-Private-registry-%EC%9E%A5%EC%95%A0%EC%A0%84%ED%8C%8C-%EB%B0%A9%EC%A7%80(LazyLoginDockerOperator-%EA%B5%AC%ED%98%84%EA%B8%B0)/" rel="alternate" type="text/html" title="Airflow DockerOperator의 Private registry 장애전파 방지(LazyLoginDockerOperator 구현기)" /><published>2024-10-12T00:00:00+09:00</published><updated>2024-10-13T23:46:10+09:00</updated><id>https://dreamsh19.github.io/airflow/Airflow-DockerOperator%EC%9D%98-Private-registry-%EC%9E%A5%EC%95%A0%EC%A0%84%ED%8C%8C-%EB%B0%A9%EC%A7%80(LazyLoginDockerOperator-%EA%B5%AC%ED%98%84%EA%B8%B0)</id><content type="html" xml:base="https://dreamsh19.github.io/airflow/Airflow-DockerOperator%EC%9D%98-Private-registry-%EC%9E%A5%EC%95%A0%EC%A0%84%ED%8C%8C-%EB%B0%A9%EC%A7%80(LazyLoginDockerOperator-%EA%B5%AC%ED%98%84%EA%B8%B0)/"><![CDATA[<h2 id="이슈">이슈</h2>
+<ul>
+  <li>Airflow에서 DockerOperator를 이용하여 매번 private registry에서 도커 이미지를 pull해서 수행하는 배치가 있다.</li>
+  <li>그런데 외부 조직에서 관리하는 private registry의 장애가 발생하는 경우 registry의 장애가 서비스의 배치까지 전파되는 문제가 있었다.</li>
+  <li>그리고 private registry의 장애가 빈번해짐에 따라 서비스에 영향을 주지 않게끔 조치가 필요해졌고, registry 장애가 서비스 배치의 장애로 전파되지 않도록 하고자했다.</li>
+</ul>
+
+<h2 id="문제-상황-당시-로그">문제 상황 당시 로그</h2>
+
+<p><img src="https://github.com/user-attachments/assets/979aeed5-6d43-4432-ab22-9d53d8fc9268" alt="image" /></p>
+
+<p>문제 상황 발생 당시의 로그이다. Docker login 단계에서 private registry에서 500 에러가 발생하면서 해당 DAG가 실패하였다.</p>
+
+<h2 id="최초-시도--force_pull-옵션-변경">최초 시도 : force_pull 옵션 변경</h2>
+
+<p>서비스에서는 매번 private registry에서 이미지를 pull하도록 하는 DockerOperator의 force_pull 옵션을 True로 설정하여 사용하고 있었다.<br />
+force_pull 옵션은 그 이름에서도 쉽게 알 수 있듯이, DockerOperator가 수행될때마다 무조건 이미지를 pull해서 사용하도록 하는 옵션이다.</p>
+<blockquote>
+  <p><strong>force_pull</strong> (<a href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) – Pull the docker image on every run. Default is False.</p>
+</blockquote>
+
+<p>True로 설정해두고 사용했던건 아마도 원격의 단일 이미지를 참조하게 함으로써 로컬에 캐싱된 이미지로 인한 불일치나 장애를 막기 위함이 아닐까 추측된다.<br />
+따라서 force_pull 옵션을 False로 설정하면 최초 수행 시(이미지 버전 업 등)에만 이미지를 pull하고, 그 이후에는 이미 pull 받은 이미지를 로컬에서 가져올테니,<br />
+최초 수행 시에만 registry 의존성이 있고, 그 이후에는 registry 장애에 영향을 받지 않을 것이라고 생각했다.<br />
+(물론 이게 유효하려면 매번 같은 worker에서 수행된다는 보장이 되어야하는데, 해당 DAG는 고정된 하나의 장비에서 수행되도록 설정되어 있었다.)</p>
+
+<p>그러나.. force_pull 옵션을 비활성화하고 테스트를 해보았으나, private registry가 올바른 응답을 주지 않는 경우에 여전히 DAG는 실패했다.</p>
+
+<h2 id="dockeroperator-소스를-살펴보자">DockerOperator 소스를 살펴보자</h2>
+
+<p>force_pull 옵션이 의도대로 동작하지 않고, 문서에도 특별한 설명이 없어서 소스 코드를 살펴보았다.<br />
+아래는 DockerOperator의 execute() 함수 전문이다. (서비스에서 사용하고 있던 providers-docker 2.5.0 버전 기준)<br />
+참고로, Airflow의 각종 Operator들은 BaseOperator의 execute() 함수를 구현하여 서로 다른 기능을 제공한다.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="sh">'</span><span class="s">Context</span><span class="sh">'</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+	<span class="n">self</span><span class="p">.</span><span class="n">cli</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="nf">_get_cli</span><span class="p">()</span>
+	<span class="k">if</span> <span class="ow">not</span> <span class="n">self</span><span class="p">.</span><span class="n">cli</span><span class="p">:</span>
+		<span class="k">raise</span> <span class="nc">Exception</span><span class="p">(</span><span class="sh">"</span><span class="s">The </span><span class="sh">'</span><span class="s">cli</span><span class="sh">'</span><span class="s"> should be initialized before!</span><span class="sh">"</span><span class="p">)</span>
+
+	<span class="c1"># Pull the docker image if `force_pull` is set or image does not exist locally
+</span>	<span class="k">if</span> <span class="n">self</span><span class="p">.</span><span class="n">force_pull</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">self</span><span class="p">.</span><span class="n">cli</span><span class="p">.</span><span class="nf">images</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">image</span><span class="p">):</span>
+		<span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">info</span><span class="p">(</span><span class="sh">'</span><span class="s">Pulling docker image %s</span><span class="sh">'</span><span class="p">,</span> <span class="n">self</span><span class="p">.</span><span class="n">image</span><span class="p">)</span>
+		<span class="n">latest_status</span> <span class="o">=</span> <span class="p">{}</span>
+		<span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">cli</span><span class="p">.</span><span class="nf">pull</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">image</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">decode</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+			<span class="k">if</span> <span class="nf">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+				<span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">info</span><span class="p">(</span><span class="sh">"</span><span class="s">%s</span><span class="sh">"</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+				<span class="k">continue</span>
+			<span class="k">if</span> <span class="nf">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="sh">'</span><span class="s">status</span><span class="sh">'</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+				<span class="n">output_status</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="sh">"</span><span class="s">status</span><span class="sh">"</span><span class="p">]</span>
+				<span class="k">if</span> <span class="sh">'</span><span class="s">id</span><span class="sh">'</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+					<span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">info</span><span class="p">(</span><span class="sh">"</span><span class="s">%s</span><span class="sh">"</span><span class="p">,</span> <span class="n">output_status</span><span class="p">)</span>
+					<span class="k">continue</span>
+
+				<span class="n">output_id</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="sh">"</span><span class="s">id</span><span class="sh">"</span><span class="p">]</span>
+				<span class="k">if</span> <span class="n">latest_status</span><span class="p">.</span><span class="nf">get</span><span class="p">(</span><span class="n">output_id</span><span class="p">)</span> <span class="o">!=</span> <span class="n">output_status</span><span class="p">:</span>
+					<span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">info</span><span class="p">(</span><span class="sh">"</span><span class="s">%s: %s</span><span class="sh">"</span><span class="p">,</span> <span class="n">output_id</span><span class="p">,</span> <span class="n">output_status</span><span class="p">)</span>
+					<span class="n">latest_status</span><span class="p">[</span><span class="n">output_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">output_status</span>
+	<span class="k">return</span> <span class="n">self</span><span class="p">.</span><span class="nf">_run_image</span><span class="p">()</span>
+
+<span class="k">def</span> <span class="nf">_get_cli</span><span class="p">(</span><span class="n">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">APIClient</span><span class="p">:</span>
+	<span class="k">if</span> <span class="n">self</span><span class="p">.</span><span class="n">docker_conn_id</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">self</span><span class="p">.</span><span class="nf">get_hook</span><span class="p">().</span><span class="nf">get_conn</span><span class="p">()</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="n">tls_config</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="nf">__get_tls_config</span><span class="p">()</span>
+		<span class="k">return</span> <span class="nc">APIClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">docker_url</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">api_version</span><span class="p">,</span> <span class="n">tls</span><span class="o">=</span><span class="n">tls_config</span><span class="p">)</span>
+</code></pre></div></div>
+<ul>
+  <li><a href="https://github.com/apache/airflow/blob/providers-docker/2.5.0/airflow/providers/docker/operators/docker.py#L359-L390">airflow/airflow/providers/docker/operators/docker.py at providers-docker/2.5.0 · apache/airflow · GitHub</a></li>
+</ul>
+
+<p>로직 자체는 이미지를 pull해야하는 경우(force_pull이거나, 이미지가 존재하지 않는 경우) 이미지를 pull하고 run 한다. 정도로 간단하다.</p>
+
+<p>그런데 위 코드에서 주목할만한 점은 execute()을 진입하자마자 docker client(코드에서 <code class="language-plaintext highlighter-rouge">self.cli</code>)를 <code class="language-plaintext highlighter-rouge">_get_cli()</code> 함수를 통해 초기화한다.<br />
+그리고 <code class="language-plaintext highlighter-rouge">_get_cli()</code> 함수를 살펴보면, docker_conn_id 가 있는 경우 DockerHook을 이용해서 클라이언트를 초기화한다.<br />
+이때 docker_conn_id는 private registry에 접근할때의 인증정보를 포함하고 있는 객체이다.</p>
+
+<blockquote>
+  <p>If a login to a private registry is required prior to pulling the image, a Docker connection needs to be configured in Airflow and the connection ID be provided with the parameter <code class="language-plaintext highlighter-rouge">docker_conn_id</code>.</p>
+</blockquote>
+
+<p>서비스에서는 private registry에 접근하기 때문에 docker_conn_id를 설정하여 사용하고 있었고, 그렇기 때문에 <code class="language-plaintext highlighter-rouge">_get_cli()</code>에서 해당 분기를 타게 된다.</p>
+
+<p>그렇다면 DockerHook 클래스의 <code class="language-plaintext highlighter-rouge">get_conn()</code> 함수를 더 살펴보자. 아래는 해당 함수 전문이다.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">get_conn</span><span class="p">(</span><span class="n">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">APIClient</span><span class="p">:</span>
+	<span class="n">client</span> <span class="o">=</span> <span class="nc">APIClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">__base_url</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">__version</span><span class="p">,</span> <span class="n">tls</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">__tls</span><span class="p">)</span>
+	<span class="n">self</span><span class="p">.</span><span class="nf">__login</span><span class="p">(</span><span class="n">client</span><span class="p">)</span>
+	<span class="k">return</span> <span class="n">client</span>
+
+
+<span class="k">def</span> <span class="nf">__login</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">client</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+	<span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">debug</span><span class="p">(</span><span class="sh">'</span><span class="s">Logging into Docker</span><span class="sh">'</span><span class="p">)</span>
+	<span class="k">try</span><span class="p">:</span>
+		<span class="n">client</span><span class="p">.</span><span class="nf">login</span><span class="p">(</span>
+			<span class="n">username</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">__username</span><span class="p">,</span>
+			<span class="n">password</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">__password</span><span class="p">,</span>
+			<span class="n">registry</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">__registry</span><span class="p">,</span>
+			<span class="n">email</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">__email</span><span class="p">,</span>
+			<span class="n">reauth</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">__reauth</span><span class="p">,</span>
+		<span class="p">)</span>
+		<span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">debug</span><span class="p">(</span><span class="sh">'</span><span class="s">Login successful</span><span class="sh">'</span><span class="p">)</span>
+	<span class="k">except</span> <span class="n">APIError</span> <span class="k">as</span> <span class="n">docker_error</span><span class="p">:</span>
+		<span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">error</span><span class="p">(</span><span class="sh">'</span><span class="s">Docker login failed: %s</span><span class="sh">'</span><span class="p">,</span> <span class="nf">str</span><span class="p">(</span><span class="n">docker_error</span><span class="p">))</span>
+		<span class="k">raise</span> <span class="nc">AirflowException</span><span class="p">(</span><span class="sa">f</span><span class="sh">'</span><span class="s">Docker login failed: </span><span class="si">{</span><span class="n">docker_error</span><span class="si">}</span><span class="sh">'</span><span class="p">)</span>
+</code></pre></div></div>
+<ul>
+  <li><a href="https://github.com/apache/airflow/blob/providers-docker/2.5.0/airflow/providers/docker/hooks/docker.py#L88-L106">airflow/airflow/providers/docker/hooks/docker.py at providers-docker/2.5.0 · apache/airflow · GitHub</a></li>
+</ul>
+
+<p>놀랍게도 클라이언트를 생성한 이후에 즉시 로그인을 하는 것을 확인할 수 있다!<br />
+그리고 <code class="language-plaintext highlighter-rouge">__login()</code> 함수를 따라가다보니 에러발생시 <code class="language-plaintext highlighter-rouge">Docker login failed</code> 라는 <a href="#문제-상황-당시-로그">문제 상황 당시 로그</a> 에서 봤던 익숙한 문구가 눈에 띈다.</p>
+
+<p>결국 소스 코드를 살펴봤을때,<br />
+<strong>docker client 생성 시점에 로그인을 시도하고, 로그인이 실패하면서, 로컬 이미지의 존재 여부는 조회조차 하지 못한채 실패하는 것이었다.</strong></p>
+
+<h2 id="execute-함수-오버라이딩을-통한-해결">execute() 함수 오버라이딩을 통한 해결</h2>
+
+<p>결국 우리가 필요한 것은, 로컬의 이미지를 조회하고, 없는 경우에만 이미지를 pull하면 된다.<br />
+따라서 images API 호출 시점의 docker client는 로그인이 필요하지 않고, pull API 호출 시점의 docker client는 로그인이 필요하다.<br />
+그런데 위 execute() 함수의 구현 상 docker client(<code class="language-plaintext highlighter-rouge">self.cli</code>)를 중간에 주입할 수가 없는 구조이기 때문에 아래와 같이 execute() 함수 자체를 오버라이딩하는 방식으로 해결하였다.</p>
+
+<ol>
+  <li>images API 호출 시점의 docker client는 로그인을 하지 않은 상태의 client 생성</li>
+  <li>images API 호출 이후~ pull API 호출 직전에 client 로그인 수행</li>
+  <li>그 외의 로직은 동일</li>
+</ol>
+
+<p>위와 같은 요구사항을 반영하여 구현한 전문은 아래와 같다.(DockerOperator를 상속한 LazyLoginDockerOperator)</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="n">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="n">airflow.providers.docker.operators.docker</span> <span class="kn">import</span> <span class="n">DockerOperator</span>
+<span class="kn">from</span> <span class="n">docker</span> <span class="kn">import</span> <span class="n">APIClient</span><span class="p">,</span> <span class="n">tls</span>
+
+<span class="k">class</span> <span class="nc">LazyLoginDockerOperator</span><span class="p">(</span><span class="n">DockerOperator</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">cli</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="nf">_get_cli</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">self</span><span class="p">.</span><span class="n">cli</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="nc">Exception</span><span class="p">(</span><span class="sh">"</span><span class="s">The </span><span class="sh">'</span><span class="s">cli</span><span class="sh">'</span><span class="s"> should be initialized before!</span><span class="sh">"</span><span class="p">)</span>
+
+        <span class="c1"># Pull the docker image if `force_pull` is set or image does not exist locally
+</span>        
+        <span class="k">if</span> <span class="n">self</span><span class="p">.</span><span class="n">force_pull</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">self</span><span class="p">.</span><span class="n">cli</span><span class="p">.</span><span class="nf">images</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">image</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">self</span><span class="p">.</span><span class="n">docker_conn_id</span><span class="p">:</span>
+                <span class="n">self</span><span class="p">.</span><span class="n">cli</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="nf">get_hook</span><span class="p">().</span><span class="nf">get_conn</span><span class="p">()</span>
+
+            <span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">info</span><span class="p">(</span><span class="sh">'</span><span class="s">Pulling docker image %s</span><span class="sh">'</span><span class="p">,</span> <span class="n">self</span><span class="p">.</span><span class="n">image</span><span class="p">)</span>
+            <span class="n">latest_status</span> <span class="o">=</span> <span class="p">{}</span>
+            
+            <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">cli</span><span class="p">.</span><span class="nf">pull</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">image</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">decode</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nf">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">info</span><span class="p">(</span><span class="sh">"</span><span class="s">%s</span><span class="sh">"</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="k">if</span> <span class="nf">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="sh">'</span><span class="s">status</span><span class="sh">'</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+                    <span class="n">output_status</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="sh">"</span><span class="s">status</span><span class="sh">"</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="sh">'</span><span class="s">id</span><span class="sh">'</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+                        <span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">info</span><span class="p">(</span><span class="sh">"</span><span class="s">%s</span><span class="sh">"</span><span class="p">,</span> <span class="n">output_status</span><span class="p">)</span>
+                        <span class="k">continue</span>
+
+                    <span class="n">output_id</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="sh">"</span><span class="s">id</span><span class="sh">"</span><span class="p">]</span>
+
+                    <span class="k">if</span> <span class="n">latest_status</span><span class="p">.</span><span class="nf">get</span><span class="p">(</span><span class="n">output_id</span><span class="p">)</span> <span class="o">!=</span> <span class="n">output_status</span><span class="p">:</span>
+                        <span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">info</span><span class="p">(</span><span class="sh">"</span><span class="s">%s: %s</span><span class="sh">"</span><span class="p">,</span> <span class="n">output_id</span><span class="p">,</span> <span class="n">output_status</span><span class="p">)</span>
+                        <span class="n">latest_status</span><span class="p">[</span><span class="n">output_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">output_status</span>
+        <span class="k">return</span> <span class="n">self</span><span class="p">.</span><span class="nf">_run_image</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_get_cli</span><span class="p">(</span><span class="n">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">APIClient</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nc">APIClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">docker_url</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">api_version</span><span class="p">,</span> <span class="n">tls</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="nf">__get_tls_config</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">__get_tls_config</span><span class="p">(</span><span class="n">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tls</span><span class="p">.</span><span class="n">TLSConfig</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">self</span><span class="p">.</span><span class="nf">_DockerOperator__get_tls_config</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>위와 같이 변경한 LazyLoginDockerOperator를 문제가 된 DAG에 적용하였고, 이후에 동일한 registry 장애가 발생했을때 해당 DAG는 영향을 받지 않고 정상수행됨을 확인했다!<br />
+이로써 외부 요인인 registry 장애가 발생했을 때 서비스 배치로의 장애가 전파되는 걸 막을 수 있었고, 장애 대응으로 인한 공수 또한 절감할 수 있었다.</p>
+
+<h2 id="이후-버전에서-해결되었을까">이후 버전에서 해결되었을까</h2>
+
+<p>사실 문제 발생 당시에 이미지 존재 여부와 무관하게 실패하는 것이 정상동작은 아니라고 생각하여 bug fix가 있었는지를 찾아보았으나, 딱히 올라오진 않았고, 당시 최신버전에서도 문제가 해결되지 않은 것으로 확인해서 위와 같이 어쩔 수 없이 직접 오버라이딩하는 방식으로 해결하였다.<br />
+그리고 현재(2024년 10월) 기준 최신 버전인 providers-airflow 3.14.0 버전에서도 여전히 동일한 이슈가 발생하는 것으로 확인된다.</p>
+
+<p><a href="https://github.com/apache/airflow/pull/28363">make docker operators always use `DockerHook` for API calls by Taragolis · Pull Request #28363 · apache/airflow · GitHub</a><br />
+위 PR에서 docker client를 획득하는 로직이 변경되긴 했으나, 단순히 생성 시점이 execute() 호출 시점이 아닌 self.cli 최초 호출 시점에 최초 생성된다는 점만 바뀌었을뿐, 여전히 생성 시점에 로그인을 하는 로직은 바뀌지 않은듯하고, 이 로직이 현재 최신 버전에서도 동일하다.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># DockerHook.api_client()의 일부 
+</span><span class="k">if</span> <span class="n">self</span><span class="p">.</span><span class="n">docker_conn_id</span><span class="p">:</span>
+	<span class="c1"># Obtain connection and try to login to Container Registry only if ``docker_conn_id`` set.
+</span>	<span class="n">self</span><span class="p">.</span><span class="nf">__login</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">self</span><span class="p">.</span><span class="nf">get_connection</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">docker_conn_id</span><span class="p">))</span>
+</code></pre></div></div>
+<ul>
+  <li><a href="https://github.com/apache/airflow/blob/providers-docker/3.14.0/airflow/providers/docker/hooks/docker.py#L151-L153">airflow/airflow/providers/docker/hooks/docker.py at providers-docker/3.14.0 · apache/airflow · GitHub</a></li>
+</ul>
+
+<p>따라서 현재 기준 최신 버전에서도 동일한 이슈는 여전히 발생하기 때문에, 단순 버전업만으로는 위와 같은 문제에 대한 해결은 어려워보인다.</p>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li><a href="https://github.com/apache/airflow/tree/providers-docker/2.5.0/airflow/providers/docker">airflow/airflow/providers/docker at providers-docker/2.5.0 · apache/airflow · GitHub</a></li>
+  <li><a href="https://airflow.apache.org/docs/apache-airflow-providers-docker/stable/_api/airflow/providers/docker/operators/docker/index.html">airflow.providers.docker.operators.docker — apache-airflow-providers-docker Documentation</a></li>
+  <li><a href="https://github.com/apache/airflow/pull/28363">make docker operators always use `DockerHook` for API calls by Taragolis · Pull Request #28363 · apache/airflow · GitHub</a></li>
+</ul>]]></content><author><name>ㅎㅅㅎ</name><email>dreamsh19@gmail.com</email></author><category term="Airflow" /><category term="Airflow" /><category term="Docker" /><summary type="html"><![CDATA[이슈 Airflow에서 DockerOperator를 이용하여 매번 private registry에서 도커 이미지를 pull해서 수행하는 배치가 있다. 그런데 외부 조직에서 관리하는 private registry의 장애가 발생하는 경우 registry의 장애가 서비스의 배치까지 전파되는 문제가 있었다. 그리고 private registry의 장애가 빈번해짐에 따라 서비스에 영향을 주지 않게끔 조치가 필요해졌고, registry 장애가 서비스 배치의 장애로 전파되지 않도록 하고자했다.]]></summary></entry><entry><title type="html">Java의 Integer도 Pool이 있다</title><link href="https://dreamsh19.github.io/java/Java%EC%9D%98-Integer%EB%8F%84-pool%EC%9D%B4-%EC%9E%88%EB%8B%A4/" rel="alternate" type="text/html" title="Java의 Integer도 Pool이 있다" /><published>2024-04-13T00:00:00+09:00</published><updated>2024-04-13T00:00:00+09:00</updated><id>https://dreamsh19.github.io/java/Java%EC%9D%98-Integer%EB%8F%84-pool%EC%9D%B4-%EC%9E%88%EB%8B%A4</id><content type="html" xml:base="https://dreamsh19.github.io/java/Java%EC%9D%98-Integer%EB%8F%84-pool%EC%9D%B4-%EC%9E%88%EB%8B%A4/"><![CDATA[<p>아래 자바 코드 실행 결과가 이해가 된다면 이 글을 스킵해도 된다.</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">private</span> <span class="kt">boolean</span> <span class="nf">isBoxedIntegerSame</span><span class="o">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">)</span> <span class="o">{</span>  
+    <span class="nc">Integer</span> <span class="n">i1</span> <span class="o">=</span> <span class="n">i</span><span class="o">;</span>  
+    <span class="nc">Integer</span> <span class="n">i2</span> <span class="o">=</span> <span class="n">i</span><span class="o">;</span>
+    <span class="k">return</span> <span class="n">i1</span> <span class="o">==</span> <span class="n">i2</span><span class="o">;</span>  
+<span class="o">}</span>
+
+<span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testIntegerSame</span><span class="o">(){</span>
+	<span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">isBoxedIntegerSame</span><span class="o">(</span><span class="mi">127</span><span class="o">));</span> <span class="c1">// true</span>
+	<span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">isBoxedIntegerSame</span><span class="o">(</span><span class="mi">128</span><span class="o">));</span> <span class="c1">// false</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<ul>
+  <li>isBoxedIntegerSame() 함수의 결과값이 true 혹은 false 중 하나의 값으로 예측했지만 틀렸다면, 자바의 동등 비교(==)에 대한 이해나, Wrapper 타입의 boxing에 대한 이해가 부족했다고 생각하고 이 부분을 좀 더 찾아볼 수 있다.</li>
+  <li>그러나, 위 예시처럼 결과 값이 인풋에 따라서 달라지는 것은 위 두가지에 대한 이해만으로는 부족하다.</li>
+  <li>그래서 이 값이 달라지는 이유에 대해서 다루고자 한다.</li>
+</ul>
+
+<h2 id="autoboxing">Autoboxing</h2>
+
+<p>우선 몇줄 안되는 isBoxedIntegerSame() 함수의 코드를 살펴보자.</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">Integer</span> <span class="n">i1</span> <span class="o">=</span> <span class="n">i</span>
+</code></pre></div></div>
+<p>와 같은 코드를 작성하게 되면, 컴파일러에서는 원시 타입인 int를 wrapper 타입인 Integer로 변환하기 위해 autoboxing을 수행한다.<br />
+이때 컴파일러는 <code class="language-plaintext highlighter-rouge">Integer.valueOf(int i)</code> 함수를 이용하게 된다.<br />
+그러므로 위와 같은 코드는 컴파일러에 의해</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">Integer</span> <span class="n">i1</span> <span class="o">=</span> <span class="nc">Integer</span><span class="o">.</span><span class="na">valueOf</span><span class="o">(</span><span class="n">i</span><span class="o">)</span>
+</code></pre></div></div>
+
+<p>와 같은 코드로 변환된다.</p>
+
+<p>그렇다면 Integer.valueOf() 함수의 내부 구현을 살펴보자</p>
+
+<h2 id="integervalueof-내부-구현">Integer.valueOf 내부 구현</h2>
+
+<p>아래는 Integer.valueOf()의 구현 전문이다.</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/**  
+ * Returns an {@code Integer} instance representing the specified  
+ * {@code int} value.  If a new {@code Integer} instance is not  
+ * required, this method should generally be used in preference to
+ * the constructor {@link #Integer(int)}, as this method is likely
+ * to yield significantly better space and time performance by 
+ * caching frequently requested values. 
+ * 
+ * This method will always cache values in the range -128 to 127, 
+ * inclusive, and may cache other values outside of this range. 
+ * 
+ * @param  i an {@code int} value.  
+ * @return an {@code Integer} instance representing {@code i}.  
+ * @since  1.5  
+ */</span>
+ <span class="kd">public</span> <span class="kd">static</span> <span class="nc">Integer</span> <span class="nf">valueOf</span><span class="o">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">)</span> <span class="o">{</span>  
+    <span class="k">if</span> <span class="o">(</span><span class="n">i</span> <span class="o">&gt;=</span> <span class="nc">IntegerCache</span><span class="o">.</span><span class="na">low</span> <span class="o">&amp;&amp;</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="nc">IntegerCache</span><span class="o">.</span><span class="na">high</span><span class="o">)</span>  
+        <span class="k">return</span> <span class="nc">IntegerCache</span><span class="o">.</span><span class="na">cache</span><span class="o">[</span><span class="n">i</span> <span class="o">+</span> <span class="o">(-</span><span class="nc">IntegerCache</span><span class="o">.</span><span class="na">low</span><span class="o">)];</span>  
+    <span class="k">return</span> <span class="k">new</span> <span class="nf">Integer</span><span class="o">(</span><span class="n">i</span><span class="o">);</span>  
+<span class="o">}</span>
+</code></pre></div></div>
+<ul>
+  <li><a href="https://github.com/openjdk/jdk/blob/c1c99a669bb7f9928086db6a4ecfc90c410ffbb0/src/java.base/share/classes/java/lang/Integer.java#L1016-L1020">jdk/src/java.base/share/classes/java/lang/Integer.java at c1c99a669bb7f9928086db6a4ecfc90c410ffbb0 · openjdk/jdk · GitHub</a></li>
+</ul>
+
+<p>놀랍게도, 단순히 new Integer()를 호출하는게 아니고, 캐시의 개념이 들어가 있는 것을 확인할 수 있다!<br />
+구현을 보니, 특정 구간인 경우에 캐시에서 꺼내오고 그렇지 않으면 새로운 인스턴스를 생성하는 것으로 보인다.<br />
+이때 특정 구간이라함은, 위 자바독에 따르면 -128 ~ 127 (inclusive)에 해당한다.<br />
+캐시이기도 하고, 객체 재사용을 위해 사전에 미리 만들어놓은 풀(pool)의 개념이기도 하다.</p>
+
+<p>이제 글 도입부의 실행결과를 이해할 수 있다.<br />
+127은 Integer 풀에 속한 구간이므로, Integer 인스턴스를 항상 풀에서 꺼내오기 때문에 늘 같은 인스턴스를 참조하게 되고. 그렇기 때문에 동등 연산을 수행하면 true가 나온다.<br />
+하지만, 128은 Integer 풀을 벗어난 구간이므로, 매번 새로운 인스턴스를 생성하게 되어 동등 연산을 수행하게 되면 false가 된다.</p>
+
+<h2 id="jls에-명시된-스펙">JLS에 명시된 스펙</h2>
+
+<p>사실 특정 구간의 Integer에 대해 pool을 만들어두고 재사용하는 것은 시간과 공간 성능 상의 이유겠거니라고 생각했는데(자바의 인스턴스 생성은 비싼 연산이므로..)<br />
+이유는 성능 상의 이유가 맞지만, 관련해서 찾아보다보니 해당 구간의 Integer를 동일한 인스턴스를 참조하게 하는 것은 자바 언어의 스펙이었다.</p>
+
+<p>JLS(Java Language Specification) 문서 중 Boxing conversion 파트에 아래와 같은 내용이 있다.</p>
+<blockquote>
+  <p>If the value <em>p</em> being boxed is <code class="language-plaintext highlighter-rouge">true</code>, <code class="language-plaintext highlighter-rouge">false</code>, a <code class="language-plaintext highlighter-rouge">byte</code>, a <code class="language-plaintext highlighter-rouge">char</code> in the range \u0000 to \u007f, or an <code class="language-plaintext highlighter-rouge">int</code> or <code class="language-plaintext highlighter-rouge">short</code> number between -128 and 127, then let <em>r1</em> and <em>r2</em> be the results of any two boxing conversions of <em>p.</em> It is always the case that _r1 == r2.</p>
+</blockquote>
+
+<p>자바 버전별로 조금씩 표현은 다르지만, 결국 -128 ~ 127 구간의 Integer에 대해서는 Wrapper 타입이더라도, 동등 연산만으로도 값의 비교가 가능해야한다는 내용이다.<br />
+(그리고 Integer 외에도 Boolean, Character 등도 같은 개념이 있다.)</p>
+
+<p>관련해서 조금 더 살펴보면, 아래와 같은 내용이 있다.</p>
+<blockquote>
+  <p>Ideally, boxing a given primitive value p, would always yield an identical reference. In practice, this may not be feasible using existing implementation techniques. The rules above are a pragmatic compromise. The final clause above requires that certain common values always be boxed into indistinguishable objects. The implementation may cache these, lazily or eagerly.</p>
+</blockquote>
+
+<p>결국 Wrapper 타입도 이상적으로는 모든 구간에 대해서 동등 연산만으로 비교가 가능해야하지만, 현실적으로 모든 수에 대해 객체를 만들어두는 것은 불가능하므로, 프로그래밍 상의 절충안으로 특정 구간으로 한정한다는 내용이다.</p>
+
+<h2 id="autoboxcachemax">AutoBoxCacheMax</h2>
+
+<p>위에서 Integer 풀의 구간은 -128~127 이라고 했는데, 해당 구간은 내부적으로 IntegerCache의 low, high 변수에 의해 조정된다.<br />
+Integer 클래스 내에 있는 IntegerCache 클래스의 내부 구현을 살펴보자.</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/**  
+ * Cache to support the object identity semantics of autoboxing for values between 
+ * -128 and 127 (inclusive) as required by JLS. 
+ * 
+ * The cache is initialized on first usage.  The size of the cache 
+ * may be controlled by the {@code -XX:AutoBoxCacheMax=&lt;size&gt;} option.  
+ * During VM initialization, java.lang.Integer.IntegerCache.high property 
+ * may be set and saved in the private system properties in the 
+ * sun.misc.VM class. 
+ * 
+ */</span>  
+<span class="kd">private</span> <span class="kd">static</span> <span class="kd">class</span> <span class="nc">IntegerCache</span> <span class="o">{</span>  
+    <span class="kd">static</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">low</span> <span class="o">=</span> <span class="o">-</span><span class="mi">128</span><span class="o">;</span>  
+    <span class="kd">static</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">high</span><span class="o">;</span>  
+    <span class="kd">static</span> <span class="kd">final</span> <span class="nc">Integer</span> <span class="n">cache</span><span class="o">[];</span>  
+  
+    <span class="kd">static</span> <span class="o">{</span>  
+        <span class="c1">// high value may be configured by property  </span>
+        <span class="kt">int</span> <span class="n">h</span> <span class="o">=</span> <span class="mi">127</span><span class="o">;</span>  
+        <span class="nc">String</span> <span class="n">integerCacheHighPropValue</span> <span class="o">=</span>  
+            <span class="n">sun</span><span class="o">.</span><span class="na">misc</span><span class="o">.</span><span class="na">VM</span><span class="o">.</span><span class="na">getSavedProperty</span><span class="o">(</span><span class="s">"java.lang.Integer.IntegerCache.high"</span><span class="o">);</span>  
+        <span class="k">if</span> <span class="o">(</span><span class="n">integerCacheHighPropValue</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>  
+            <span class="k">try</span> <span class="o">{</span>  
+                <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">parseInt</span><span class="o">(</span><span class="n">integerCacheHighPropValue</span><span class="o">);</span>  
+                <span class="n">i</span> <span class="o">=</span> <span class="nc">Math</span><span class="o">.</span><span class="na">max</span><span class="o">(</span><span class="n">i</span><span class="o">,</span> <span class="mi">127</span><span class="o">);</span>  
+                <span class="c1">// Maximum array size is Integer.MAX_VALUE  </span>
+                <span class="n">h</span> <span class="o">=</span> <span class="nc">Math</span><span class="o">.</span><span class="na">min</span><span class="o">(</span><span class="n">i</span><span class="o">,</span> <span class="nc">Integer</span><span class="o">.</span><span class="na">MAX_VALUE</span> <span class="o">-</span> <span class="o">(-</span><span class="n">low</span><span class="o">)</span> <span class="o">-</span><span class="mi">1</span><span class="o">);</span>  
+            <span class="o">}</span> <span class="k">catch</span><span class="o">(</span> <span class="nc">NumberFormatException</span> <span class="n">nfe</span><span class="o">)</span> <span class="o">{</span>  
+                <span class="c1">// If the property cannot be parsed into an int, ignore it.  </span>
+            <span class="o">}</span>  
+        <span class="o">}</span>  
+        <span class="n">high</span> <span class="o">=</span> <span class="n">h</span><span class="o">;</span>  
+  
+        <span class="n">cache</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Integer</span><span class="o">[(</span><span class="n">high</span> <span class="o">-</span> <span class="n">low</span><span class="o">)</span> <span class="o">+</span> <span class="mi">1</span><span class="o">];</span>  
+        <span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="n">low</span><span class="o">;</span>  
+        <span class="k">for</span><span class="o">(</span><span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="n">cache</span><span class="o">.</span><span class="na">length</span><span class="o">;</span> <span class="n">k</span><span class="o">++)</span>  
+            <span class="n">cache</span><span class="o">[</span><span class="n">k</span><span class="o">]</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Integer</span><span class="o">(</span><span class="n">j</span><span class="o">++);</span>  
+  
+        <span class="c1">// range [-128, 127] must be interned (JLS7 5.1.7)  </span>
+        <span class="k">assert</span> <span class="nc">IntegerCache</span><span class="o">.</span><span class="na">high</span> <span class="o">&gt;=</span> <span class="mi">127</span><span class="o">;</span>  
+    <span class="o">}</span>  
+  
+    <span class="kd">private</span> <span class="nf">IntegerCache</span><span class="o">()</span> <span class="o">{}</span>  
+<span class="o">}</span>
+</code></pre></div></div>
+<ul>
+  <li><a href="https://github.com/openjdk/jdk/blob/c1c99a669bb7f9928086db6a4ecfc90c410ffbb0/src/java.base/share/classes/java/lang/Integer.java#L938-L998">jdk/src/java.base/share/classes/java/lang/Integer.java at c1c99a669bb7f9928086db6a4ecfc90c410ffbb0 · openjdk/jdk · GitHub</a></li>
+</ul>
+
+<p>이때 low 값은 -128로 고정이지만, high 값은 <code class="language-plaintext highlighter-rouge">-XX:AutoBoxCacheMax=&lt;size&gt;</code> 를 VM 옵션으로 지정해주면 조절이 가능하다.</p>
+
+<p>실제로, 아래와 같이 Intellij에서 VM 옵션으로 최댓값을 1000으로 설정하고<br />
+<img src="https://github.com/dreamsh19/dreamsh19.github.io/assets/47855638/68078797-d8d6-4c19-875a-e99766626456" alt="image" /></p>
+
+<p>글 도입부의 아래 함수를 실행하면, 둘다 true를 리턴하는 것을 확인할 수 있다.</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testIntegerSame</span><span class="o">(){</span>
+	<span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">isBoxedIntegerSame</span><span class="o">(</span><span class="mi">127</span><span class="o">));</span> <span class="c1">// true</span>
+	<span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">isBoxedIntegerSame</span><span class="o">(</span><span class="mi">128</span><span class="o">));</span> <span class="c1">// true</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>그리고 위 IntegerCache의 내부구현을 자세히 살펴보았다면 알겠지만, 해당 상한 값을 127 미만으로 설정하게 되면, 무시하고 상한을 127로 적용한다. (JLS에 명시된 스펙이기 때문이다.)<br />
+따라서, 해당 옵션을 100으로 지정하더라도 위 함수의 리턴값이 둘다 false로 바뀌진 않는다.</p>
+
+<h2 id="활용-방안에-대한-개인적인-생각">활용 방안에 대한 개인적인 생각</h2>
+
+<p>사실 실무에서 이걸 활용할 일은 많을 것 같진 않다. (활용 사례가 있다면 댓글에 알려주시면 감사하겠습니다.)<br />
+굳이 찾자면, 인풋 구간이 -128~127 내로 한정된 함수에 대해 극한의 최적화를 하는데 활용할 수 있을 듯하다.</p>
+
+<p>그리고 이걸 활용했을때 문제가 될 만한 상황은 Integer 클래스에 대해 동등 비교 연산자(==)를 썼을때 예상치 못한 동작을 하는 것이 문제일 것이다.<br />
+예를 들면, 테스트코드에서는 -128~127 구간의 수로 테스트하여 테스트를 통과하였으나, 실제 비즈니스 코드 상에서는 그외의 구간의 인풋이 들어와서 테스트 코드에서 기대하던 결과와 다른 결과가 발생한다면, 실제로 문제가 될 수 있다.</p>
+
+<p>하지만, 개인적인 생각으로는 해당 문제가 발생하기 이전에 참조 타입인 Integer 클래스에 대해 equals()가 아닌 ==를 사용하여 동등비교를 하는 것 자체가 바람직하지 않은 듯하다.<br />
+물론, 해당 연산을 -127~128 구간에 대해서만 수행하는 것이 보장되어 있다고 하더라도, 비즈니스 로직 상에서 그정도의 최적화까지 필요로 하는 일이 많지 않을 듯 하다.<br />
+오히려 위와 같은 스펙을 모르는 개발자가 봤을때는 == 연산자를 쓰는 것을 오류라고 생각할 수 있다.</p>
+
+<p>그리고 자바 스펙에 의존적인 코드이기 때문에, 현재까지의 최신의 버전에서는 잘 동작하겠지만, 이후의 버전에서도 잘 동작한다는 보장이 없다.</p>
+
+<p>그럼에도 최적화가 필요하다면, 위와 같은 자바 스펙 상의 Integer 캐시 개념에 대한 주석정도는 필요할 것 같다.</p>
+
+<h2 id="결론">결론</h2>
+
+<ul>
+  <li>자바의 Integer 클래스는 -127 ~ 128 구간에 대해 풀을 만들어놓고 객체를 재사용한다.</li>
+  <li>그리고 이것은 JLS에 명시된 자바의 스펙이다.</li>
+  <li>이 사실을 활용하면 최적화는 되겠지만, 모르는 사람이 보면 의아할 수 있으니 주석과 함께 사용할 필요는 있어보인다.</li>
+  <li>결국 실제 활용보다는 pool의 개념, 혹은 디자인 패턴 중 <a href="[Flyweight pattern - Wikipedia](https://en.wikipedia.org/wiki/Flyweight_pattern)">Flyweight 패턴</a> 활용 사례 중 하나 정도로 알고 있으면 좋을 듯하다.</li>
+</ul>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li><a href="https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/java/lang/Integer.java">jdk/src/java.base/share/classes/java/lang/Integer.java at master · openjdk/jdk · GitHub</a></li>
+  <li><a href="https://docs.oracle.com/javase/specs/jls/se7/html/jls-5.html#jls-5.1.7">Chapter 5. Conversions and Promotions</a></li>
+  <li><a href="https://stackoverflow.com/questions/20897020/why-integer-class-caching-values-in-the-range-128-to-127">java - Why Integer class caching values in the range -128 to 127? - Stack Overflow</a></li>
+  <li><a href="https://en.wikipedia.org/wiki/Flyweight_pattern">Flyweight pattern - Wikipedia</a></li>
+</ul>]]></content><author><name>ㅎㅅㅎ</name><email>dreamsh19@gmail.com</email></author><category term="Java" /><category term="Java" /><summary type="html"><![CDATA[아래 자바 코드 실행 결과가 이해가 된다면 이 글을 스킵해도 된다.]]></summary></entry><entry><title type="html">로컬에-HTTPS-웹서버를-도메인과-함께-띄워보자(feat. mkcert)</title><link href="https://dreamsh19.github.io/https/%EB%A1%9C%EC%BB%AC%EC%97%90-HTTPS-%EC%9B%B9%EC%84%9C%EB%B2%84%EB%A5%BC-%EB%8F%84%EB%A9%94%EC%9D%B8%EA%B3%BC-%ED%95%A8%EA%BB%98-%EB%9D%84%EC%9B%8C%EB%B3%B4%EC%9E%90(feat.-mkcert)/" rel="alternate" type="text/html" title="로컬에-HTTPS-웹서버를-도메인과-함께-띄워보자(feat. mkcert)" /><published>2024-03-30T00:00:00+09:00</published><updated>2024-03-30T00:00:00+09:00</updated><id>https://dreamsh19.github.io/https/%EB%A1%9C%EC%BB%AC%EC%97%90-HTTPS-%EC%9B%B9%EC%84%9C%EB%B2%84%EB%A5%BC-%EB%8F%84%EB%A9%94%EC%9D%B8%EA%B3%BC-%ED%95%A8%EA%BB%98-%EB%9D%84%EC%9B%8C%EB%B3%B4%EC%9E%90(feat.%20mkcert)</id><content type="html" xml:base="https://dreamsh19.github.io/https/%EB%A1%9C%EC%BB%AC%EC%97%90-HTTPS-%EC%9B%B9%EC%84%9C%EB%B2%84%EB%A5%BC-%EB%8F%84%EB%A9%94%EC%9D%B8%EA%B3%BC-%ED%95%A8%EA%BB%98-%EB%9D%84%EC%9B%8C%EB%B3%B4%EC%9E%90(feat.-mkcert)/"><![CDATA[<h2 id="이슈">이슈</h2>
+
+<ul>
+  <li>광고 마크업을 테스트하기 위한 환경 구축이 필요했다.
+    <ul>
+      <li>광고 마크업은 그 특성상, first party 사이트에 들어가지 않고 third party로 매체 사이트에 들어가게 된다.</li>
+      <li>그렇기 때문에 테스트를 하기 위해서 실제 광고 마크업이 들어가게 될 first party 사이트, 즉 매체 사이트를 구축할 필요가 있었다.</li>
+    </ul>
+  </li>
+  <li>이때 단순 로컬 html 파일로 테스트하지 않은 이유는, 브라우저 입장에서 실제 매체 사이트와 구분이 불가능해야했다.
+    <ul>
+      <li>실제로 로컬 html 파일에서 문제가 없더라도, 인증서 이슈나 도메인으로 인한 CORS 이슈 등의 문제가 브라우저 상에서 발생할 수 있기 때문이다.</li>
+    </ul>
+  </li>
+  <li>물론 직접 도메인 및 인증서를 발급받아서 매체 사이트를 구축하는 것도 가능하기는 하나
+    <ul>
+      <li>비용 문제가 있기도 하고,</li>
+      <li>수정 -&gt; 브라우저 렌더링 테스트 의 과정이 빈번하게 반복되어야하는데, 로컬 파일에서 수정한 것을 즉시 확인할 수 있는 환경이 필요했다.</li>
+    </ul>
+  </li>
+  <li>위와 같은 니즈로 인해 로컬에 HTTPS 서버를 도메인과 함께 구동할 수 있는 방법에 대해 살펴보고 정리하였다.</li>
+</ul>
+
+<h2 id="로컬-환경">로컬 환경</h2>
+
+<p>아래에서 기술할 로컬 환경은 macOS m1 및 python3을 기준으로 작성하였다.<br />
+그리고 아래에서 기술할 시나리오는 <code class="language-plaintext highlighter-rouge">my-little-domain.com</code> 도메인으로 HTTPS 서버를 띄우는 것을 목표로 작성한 시나리오이다.<br />
+아래 시나리오 상에서 <code class="language-plaintext highlighter-rouge">my-little-domain.com</code> 대신, 필요한 도메인으로 대체하면 된다.</p>
+
+<h2 id="로컬-http-서버-구동">로컬 HTTP 서버 구동</h2>
+
+<p>인증서가 필요없는 http 서버는 아래와 같은 한 줄짜리 파이썬 코드를 통해 구동할 수 있다. (8000번 포트)</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python3 <span class="nt">-m</span> http.server 8000 <span class="c"># python3 기준</span>
+</code></pre></div></div>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python <span class="nt">-m</span> SimpleHTTPServer 8000 <span class="c"># python2 기준</span>
+</code></pre></div></div>
+
+<p>위 명령어를 실행하게 되면, 해당 명령이 실행된 디렉토리의 파일들을 <a href="http://localhost:8000">http://localhost:8000</a> 에 접근하여 브라우저에서 볼 수 있다.<br />
+하지만, http로 서비스되는 매체 사이트는 이제 거의 없다고 봐야하기 때문에 같은 기능을 하는 https 매체 사이트가 필요했다.</p>
+
+<h2 id="ssl-인증서-발급">SSL 인증서 발급</h2>
+
+<p>HTTPS 서버를 띄우기 위해서는 인증서 발급이 선행되어야한다.</p>
+
+<h3 id="openssl">openssl</h3>
+<p>이때 openssl을 통해 아래와 같이 간단하게 인증서를 발급할 수 있다.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>openssl req <span class="nt">-x509</span> <span class="nt">-newkey</span> rsa:4096 <span class="nt">-keyout</span> key.pem <span class="nt">-out</span> cert.pem <span class="nt">-days</span> 365
+</code></pre></div></div>
+
+<p>하지만 위 인증서로 웹서버를 구동하는 경우 브라우저에서는 아래와 같이 워닝을 띄운다.</p>
+
+<p><img src="https://github.com/dreamsh19/dreamsh19.github.io/assets/47855638/c8b9a20a-744e-4259-a329-cbd532ed085a" alt="image" /></p>
+
+<p>그럴 수 밖에 없는 것이 openssl을 통해 발급한 인증서는 공인 기관(CA, Certificate Authority)으로부터 검증된 인증서가 아니기 때문이다.<br />
+그래서 우리에게는 CA로부터 공인된 인증서가 필요하다.</p>
+
+<h3 id="mkcert">mkcert</h3>
+
+<p>이걸 해주는 오픈소스 프로젝트가 바로 <a href="https://github.com/FiloSottile/mkcert">mkcert</a> 이다.<br />
+mkcert는 프로젝트에 적혀있는 것처럼 “locally trusted development certificates”, 즉 로컬 한정 공인된 인증서를 만들어주는 오픈소스이다.</p>
+<blockquote>
+  <p>A simple zero-config tool to make locally trusted development certificates with any names you’d like.</p>
+</blockquote>
+
+<p>mkcert를 우선 설치해주자.<br />
+os별 설치 방법은 readme에 자세히 나와있으니 참고하면 된다. 나는 brew를 통해 설치했다.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>brew <span class="nb">install </span>mkcert
+</code></pre></div></div>
+
+<p>설치 후에 아래와 같은 명령어를 입력하여 로컬에 CA로 mkcert를 등록해준다.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mkcert <span class="nt">-install</span>
+</code></pre></div></div>
+
+<p>이때, 시스템 내 인증기관을 등록하는 일이기 때문에 비밀번호 입력이 필요하다.</p>
+
+<p>위 명령어 실행 후 macOS 키체인 접근을 통해 확인해보면, 아래와 같이 루트 인증기관으로 mkcert가 등록되어 있음을 확인할 수 있다.</p>
+
+<p><img src="https://github.com/dreamsh19/dreamsh19.github.io/assets/47855638/b736715c-7c42-4fac-82f7-b38dfab57efd" alt="image" /></p>
+
+<p>이제 mkcert가 발급한 인증서는 내 로컬 pc에서 유효한 인증서가 되는 것이다.<br />
+그럼 로컬에서 CA가 된 mkcert로부터 “localhost” 도메인과 “my-little-domain.com” 도메인을 위한 인증서를 발급받아보자.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mkcert <span class="nt">-key-file</span> key.pem <span class="nt">-cert-file</span> cert.pem localhost my-little-domain.com
+</code></pre></div></div>
+
+<p>위 명령어를 실행 후에 명령어를 실행한 디렉토리를 확인해보면, 아래와 같이 private key 파일(<code class="language-plaintext highlighter-rouge">key.pem</code>)과 인증서 파일(<code class="language-plaintext highlighter-rouge">cert.pem</code>)이 생성되었다.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>user@local]  ~/local-https-server  <span class="nb">ls</span> <span class="nt">-al</span>
+total 16
+drwxr-xr-x   4 user  root   128  3 31 23:52 <span class="nb">.</span>
+drwxr-x---+ 35 user  root  1120  3 31 23:52 ..
+<span class="nt">-rw-r--r--</span>   1 user  root  1566  3 31 23:51 cert.pem
+<span class="nt">-rw-------</span>   1 user  root  1708  3 31 23:51 key.pem
+</code></pre></div></div>
+
+<p>이때 key 파일 및 인증서 파일의 경로 및 파일명은 이후에 웹서버를 구동할 때 필요하므로, 기억해두어야한다.<br />
+인증서가 준비되었으니 이제 HTTPS 웹서버를 구동해보자.</p>
+
+<h2 id="웹서버-구동">웹서버 구동</h2>
+
+<p>웹서버를 구동하는 방법은 apache, nginx 등등 정말 다양하다.<br />
+그러나 apache, nginx 등을 사용하는 건 일단 설치가 필요하고, 설치 후에도 conf 설정 방법에 대한 이해도 필요하다.<br />
+하지만 지금 당장 필요한건 단순히 로컬의 정적인 파일들을 서빙하기만 하면 된다.<br />
+그리고 다른 로컬 환경에서도 별도 의존성 없이 실행할 수 있는 방법이 좋을 것이다.<br />
+그래서 위와 같은 요구사항을 위해 macOS에서 별도 의존성 없이 실행할수 있는 python <code class="language-plaintext highlighter-rouge">http.server</code>를 사용하기로 했다.</p>
+
+<p>아래와 같은 간단한 파이썬 코드(web_server.py)를 작성하고,</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># web_server.py
+</span><span class="kn">from</span> <span class="n">http.server</span> <span class="kn">import</span> <span class="n">HTTPServer</span><span class="p">,</span> <span class="n">SimpleHTTPRequestHandler</span>
+<span class="kn">import</span> <span class="n">ssl</span>
+
+<span class="c1"># Specify the path to your SSL certificate and key
+</span><span class="n">ssl_certificate</span> <span class="o">=</span> <span class="sh">'</span><span class="s">cert.pem</span><span class="sh">'</span>
+<span class="n">ssl_key</span> <span class="o">=</span> <span class="sh">'</span><span class="s">key.pem</span><span class="sh">'</span>
+
+<span class="c1"># Create an HTTP server with SSL support
+</span><span class="n">httpd</span> <span class="o">=</span> <span class="nc">HTTPServer</span><span class="p">((</span><span class="sh">'</span><span class="s">localhost</span><span class="sh">'</span><span class="p">,</span> <span class="mi">443</span><span class="p">),</span> <span class="n">SimpleHTTPRequestHandler</span><span class="p">)</span>
+<span class="n">httpd</span><span class="p">.</span><span class="n">socket</span> <span class="o">=</span> <span class="n">ssl</span><span class="p">.</span><span class="nf">wrap_socket</span><span class="p">(</span><span class="n">httpd</span><span class="p">.</span><span class="n">socket</span><span class="p">,</span> <span class="n">certfile</span><span class="o">=</span><span class="n">ssl_certificate</span><span class="p">,</span> <span class="n">keyfile</span><span class="o">=</span><span class="n">ssl_key</span><span class="p">,</span> <span class="n">server_side</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+<span class="c1"># Start the server
+</span><span class="nf">print</span><span class="p">(</span><span class="sh">"</span><span class="s">Server started at https://localhost:443</span><span class="sh">"</span><span class="p">)</span>
+<span class="n">httpd</span><span class="p">.</span><span class="nf">serve_forever</span><span class="p">()</span>
+</code></pre></div></div>
+<p>(위 코드는 key 파일과 cert 파일과 같은 디렉토리에 작성하였으므로, 상대경로로만 파일들의 경로를 명시하였고, 인증서 파일과 별도 디렉토리에 작성하는 경우 그에 해당하는 절대 또는 상대 경로로 입력해주어야한다. )</p>
+
+<p>아래 명령어를 통해 간단하게 localhost 443 포트에 HTTPS 웹서버를 구동할 수 있다.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>python3 web_server.py
+</code></pre></div></div>
+
+<p>이때, sudo가 필요한 이유는, HTTPS용 포트인 443 포트는 1024 미만의 <a href="https://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html">Privileged Ports</a> 이기 때문에 루트 권한이 필요하다.</p>
+
+<h3 id="파이썬-버전에-따른-차이">파이썬 버전에 따른 차이</h3>
+
+<p>이렇게 끝인줄로만 알았는데…(그래서 사실 간단하다고 생각하고 있었는데..)<br />
+다른 pc에서 동일하게 환경을 구성하다가 <code class="language-plaintext highlighter-rouge">AttributeError: module 'ssl' has no attribute 'wrap_socket'</code> 에러와 함께 위 코드가 실패하는 것을 발견했다.</p>
+
+<p>그래서 찾아보니, 파이썬 ssl 패키지의 socket을 생성하는 <code class="language-plaintext highlighter-rouge">wrap_socket()</code> 함수가 python 3.7 버전에서 deprecate 되었고, python 3.12 버전에서는 완전히 삭제되었다. (정확히는 사용 방법이 바뀐 것이다.)</p>
+
+<blockquote>
+  <ul>
+    <li>Remove the <code class="language-plaintext highlighter-rouge">ssl.wrap_socket()</code> function, deprecated in Python 3.7: instead, create a <a href="https://docs.python.org/3.12/library/ssl.html#ssl.SSLContext" title="ssl.SSLContext"><code class="language-plaintext highlighter-rouge">ssl.SSLContext</code></a> object and call its <a href="https://docs.python.org/3.12/library/ssl.html#ssl.SSLContext.wrap_socket" title="ssl.SSLContext.wrap_socket"><code class="language-plaintext highlighter-rouge">ssl.SSLContext.wrap_socket</code></a> method. Any package that still uses <code class="language-plaintext highlighter-rouge">ssl.wrap_socket()</code> is broken and insecure. The function neither sends a SNI TLS extension nor validates server hostname. Code is subject to <a href="https://cwe.mitre.org/data/definitions/295.html">CWE-295</a>: Improper Certificate Validation. (Contributed by Victor Stinner in <a href="https://github.com/python/cpython/issues/94199">gh-94199</a>.)</li>
+  </ul>
+</blockquote>
+
+<p>기존에 테스트하던 pc 환경은 python 3.6 버전이어서 위 코드가 문제 없이 동작했던 것이고, 새로운 환경은 python 3.12 버전이어서 에러와 함께 실패한 것이다.</p>
+
+<p>그래서 파이썬 버전에 따른 분기처리를 추가하였고, 수정한 최종 코드는 아래와 같다.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># web_server.py
+</span><span class="kn">import</span> <span class="n">sys</span>
+
+<span class="kn">from</span> <span class="n">http.server</span> <span class="kn">import</span> <span class="n">HTTPServer</span><span class="p">,</span> <span class="n">SimpleHTTPRequestHandler</span>
+<span class="kn">import</span> <span class="n">ssl</span>
+
+<span class="c1"># Specify the path to your SSL certificate and key
+</span><span class="n">ssl_certificate</span> <span class="o">=</span> <span class="sh">'</span><span class="s">cert.pem</span><span class="sh">'</span>
+<span class="n">ssl_key</span> <span class="o">=</span> <span class="sh">'</span><span class="s">key.pem</span><span class="sh">'</span>
+
+<span class="c1"># Create an HTTP server with SSL support    
+</span><span class="n">server_address</span> <span class="o">=</span> <span class="p">(</span><span class="sh">'</span><span class="s">localhost</span><span class="sh">'</span><span class="p">,</span> <span class="mi">443</span><span class="p">)</span>
+<span class="n">httpd</span> <span class="o">=</span> <span class="nc">HTTPServer</span><span class="p">(</span><span class="n">server_address</span><span class="p">,</span> <span class="n">SimpleHTTPRequestHandler</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">sys</span><span class="p">.</span><span class="n">version_info</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">7</span><span class="p">):</span> <span class="c1"># For Python 3.7 and later
+</span>
+    <span class="c1"># Wrap the socket with SSL
+</span>    <span class="n">context</span> <span class="o">=</span> <span class="n">ssl</span><span class="p">.</span><span class="nf">create_default_context</span><span class="p">(</span><span class="n">ssl</span><span class="p">.</span><span class="n">Purpose</span><span class="p">.</span><span class="n">CLIENT_AUTH</span><span class="p">)</span>
+    <span class="n">context</span><span class="p">.</span><span class="nf">load_cert_chain</span><span class="p">(</span><span class="n">certfile</span><span class="o">=</span><span class="n">ssl_certificate</span><span class="p">,</span> <span class="n">keyfile</span><span class="o">=</span><span class="n">ssl_key</span><span class="p">)</span>
+    <span class="n">httpd</span><span class="p">.</span><span class="n">socket</span> <span class="o">=</span> <span class="n">context</span><span class="p">.</span><span class="nf">wrap_socket</span><span class="p">(</span><span class="n">httpd</span><span class="p">.</span><span class="n">socket</span><span class="p">,</span> <span class="n">server_side</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+<span class="k">else</span><span class="p">:</span> <span class="c1"># For Python versions earlier than 3.7
+</span>    
+    <span class="c1"># Wrap the socket with SSL
+</span>    <span class="n">httpd</span><span class="p">.</span><span class="n">socket</span> <span class="o">=</span> <span class="n">ssl</span><span class="p">.</span><span class="nf">wrap_socket</span><span class="p">(</span><span class="n">httpd</span><span class="p">.</span><span class="n">socket</span><span class="p">,</span> <span class="n">certfile</span><span class="o">=</span><span class="n">ssl_certificate</span><span class="p">,</span> <span class="n">keyfile</span><span class="o">=</span><span class="n">ssl_key</span><span class="p">,</span> <span class="n">server_side</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+<span class="c1"># Start the server
+</span><span class="nf">print</span><span class="p">(</span><span class="sh">"</span><span class="s">Server started at https://localhost:443</span><span class="sh">"</span><span class="p">)</span>
+<span class="n">httpd</span><span class="p">.</span><span class="nf">serve_forever</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>그래서 위 코드는 파이썬 3점대 버전에서 마이너 버전과 무관하게 동작하게 된다.</p>
+
+<p>어쨌든 원래 목적으로 돌아와, 다시 아래와 같은 명령어를 통해 웹 서버를 구동할 수 있고,</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>python3 web_server.py
+</code></pre></div></div>
+
+<p><a href="https://localhost">https://localhost</a> 에 접근하여 브라우저에서 해당 디렉토리의 파일들을 볼 수 있다.</p>
+
+<p><img src="https://github.com/dreamsh19/dreamsh19.github.io/assets/47855638/30f15903-1f85-4c98-a7d7-c72a1ec473c1" alt="image" /></p>
+
+<h2 id="호스트-파일etchosts-수정">호스트 파일(/etc/hosts) 수정</h2>
+
+<p>사실 위의 과정까지만 하면 필요한 것은 모두 된 것이다. localhost 라는 도메인의 HTTPS 웹서버를 띄운 셈이기 때문이다.<br />
+하지만 좀 더 매체 환경과 비슷하게 만들어주기 위해 localhost 의 도메인(이 글에서는 <code class="language-plaintext highlighter-rouge">my-little-domain.com</code>)을 통해 접근할 수 있도록 만들어보자.<br />
+이를 위해서 로컬 DNS에 해당하는 호스트 파일 <code class="language-plaintext highlighter-rouge">/etc/hosts</code>(macOS 및 linux 기준)에 <code class="language-plaintext highlighter-rouge">my-little-domain.com</code>을 로컬호스트에 바인딩하기 위한 설정을 추가하자.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">echo</span> <span class="s1">'127.0.0.1 my-little-domain.com'</span> | <span class="nb">sudo tee</span> <span class="nt">-a</span> /etc/hosts
+</code></pre></div></div>
+
+<ul>
+  <li>이때 <code class="language-plaintext highlighter-rouge">/etc/hosts</code> 파일 수정은 root 권한이 필요하므로, output redirection(»)으로 수정할 수 없고, <code class="language-plaintext highlighter-rouge">sudo tee -a</code> 로 추가해주어야 한다.</li>
+  <li>혹은 직접 root 권한으로 파일을 에디터로 열어 수정해도 된다</li>
+</ul>
+
+<h2 id="결과-확인">결과 확인</h2>
+
+<p>이제 <a href="https://my-little-domain.com">https://my-little-domain.com</a>에 접근하여 브라우저에서 로컬 파일들을 볼 수 있다! 그리고 브라우저에서도 더 이상 인증서 관련 warning을 띄우지 않고 인정(?)해준다.</p>
+
+<p><img src="https://github.com/dreamsh19/dreamsh19.github.io/assets/47855638/bedd4879-7363-4d56-84bc-001a48f238ee" alt="image" /></p>
+
+<p><img src="https://github.com/dreamsh19/dreamsh19.github.io/assets/47855638/5e9e8eaa-5087-499a-9f55-6e0bd6f746dd" alt="image" /></p>
+
+<p>사실 이때부터는 브라우저 입장에서는 실제 매체 사이트랑 구별을 할 수가 없게 된다.<br />
+브라우저는 여느 사이트와 동일하게 <a href="https://my-little-domain.com">https://my-little-domain.com</a> 에 바인딩된 서버에 조회하여 결과를 가져올 뿐이기 때문에, 그 서버가 어떻게 구성되었는지는 알 길이 없고 알 필요도 없다.</p>
+
+<p>이로써 매체 사이트를 로컬에 mocking하여 로컬 파일 기반으로 자유롭게 마크업 테스트를 할 수 있는 환경을 만들어 보았다.</p>
+
+<h2 id="주의사항">주의사항</h2>
+
+<p>당연하게도, mkcert를 통해 발급한 인증서는 로컬에서만 유효한 인증서이므로, production 환경에서는 CA를 통해 발급받은 인증서를 사용해야한다.</p>
+
+<h2 id="references">References</h2>
+<ul>
+  <li><a href="https://github.com/FiloSottile/mkcert">GitHub - FiloSottile/mkcert: A simple zero-config tool to make locally trusted development certificates with any names you’d like.</a></li>
+  <li><a href="https://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html">Privileged Ports</a></li>
+  <li><a href="https://docs.python.org/3.12/whatsnew/3.12.html#ssl">What’s New In Python 3.12 — Python 3.12.2 documentation</a></li>
+</ul>]]></content><author><name>ㅎㅅㅎ</name><email>dreamsh19@gmail.com</email></author><category term="HTTPS" /><category term="SSL" /><category term="HTTPS" /><category term="local" /><summary type="html"><![CDATA[이슈]]></summary></entry><entry><title type="html">Airflow 00시 배치 실패 해결기(feat. render_template_as_native_obj 옵션)</title><link href="https://dreamsh19.github.io/airflow/Airflow-00%EC%8B%9C-%EB%B0%B0%EC%B9%98-%EC%8B%A4%ED%8C%A8-%ED%95%B4%EA%B2%B0%EA%B8%B0(feat.-render_template_as_native_obj-%EC%98%B5%EC%85%98)/" rel="alternate" type="text/html" title="Airflow 00시 배치 실패 해결기(feat. render_template_as_native_obj 옵션)" /><published>2024-03-17T00:00:00+09:00</published><updated>2024-03-17T00:00:00+09:00</updated><id>https://dreamsh19.github.io/airflow/Airflow-00%EC%8B%9C-%EB%B0%B0%EC%B9%98-%EC%8B%A4%ED%8C%A8-%ED%95%B4%EA%B2%B0%EA%B8%B0(feat.%20render_template_as_native_obj%20%EC%98%B5%EC%85%98)</id><content type="html" xml:base="https://dreamsh19.github.io/airflow/Airflow-00%EC%8B%9C-%EB%B0%B0%EC%B9%98-%EC%8B%A4%ED%8C%A8-%ED%95%B4%EA%B2%B0%EA%B8%B0(feat.-render_template_as_native_obj-%EC%98%B5%EC%85%98)/"><![CDATA[<h2 id="이슈">이슈</h2>
+<ul>
+  <li>Airflow 상에서 매시간(hourly) 도는 DAG가 어느 순간부터 00시대에만 항상 실패하는 이슈가 있었다.</li>
+  <li>해당 태스크는 실패하더라도, 플랜 B가 동작하기 때문에 서비스에 지장은 없었지만, 반복적으로 00시에 실패하는 것이 우연이 아닐 것이라 생각하여 자세히 살펴보기 시작했다.</li>
+</ul>
+
+<h2 id="원인-파악">원인 파악</h2>
+<ul>
+  <li>문제가 된 DAG 내 태스크는 하둡 특정 시간대의 디렉토리의 파일 존재여부를 체크하는 PythonSensor 오퍼레이터로 작성된 태스크였다.</li>
+  <li>구체적으로는, 아래와 같은 형태였다.
+    <ul>
+      <li>이때 날짜(date)와 시간(hour)은 배치 수행시간(<code class="language-plaintext highlighter-rouge">data_interval_start</code>)에서 파싱해서 가져온다.</li>
+    </ul>
+  </li>
+</ul>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">check_flag_file</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">hour</span><span class="p">):</span>
+	<span class="n">file_path</span><span class="o">=</span><span class="sa">f</span><span class="sh">'</span><span class="si">{</span><span class="n">conf</span><span class="p">.</span><span class="n">hdfs</span><span class="si">}</span><span class="s">/dt=</span><span class="si">{</span><span class="n">date</span><span class="si">}</span><span class="s">/hr=</span><span class="si">{</span><span class="n">hour</span><span class="si">}</span><span class="s">/_*</span><span class="sh">'</span>
+	<span class="o">//</span> <span class="n">후략</span>  
+  
+<span class="n">check_</span><span class="err"></span><span class="n">success</span> <span class="o">=</span> <span class="nc">PythonSensor</span><span class="p">(</span>
+	<span class="n">task_id</span><span class="o">=</span><span class="sh">'</span><span class="s">check_success</span><span class="sh">'</span><span class="p">,</span>
+	<span class="n">python_callable</span><span class="o">=</span><span class="n">check_flag_file</span><span class="p">,</span>
+	<span class="n">op_kwargs</span><span class="o">=</span><span class="p">{</span><span class="sh">"</span><span class="s">date</span><span class="sh">"</span><span class="p">:</span> <span class="n">date</span><span class="p">,</span> <span class="sh">"</span><span class="s">hour</span><span class="sh">"</span><span class="p">:</span> <span class="n">hour</span><span class="p">},</span>
+	<span class="n">poke_interval</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+	<span class="o">//</span> <span class="n">후략</span>
+<span class="p">)</span>
+</code></pre></div></div>
+
+<ul>
+  <li>그래서 실패한 자정 시간대의 태스크 기록을 보니, 아래와 같이 ‘00’의 형태가 아닌 ‘0’으로 들어가고 있었다.</li>
+</ul>
+
+<p><img src="https://github.com/dreamsh19/dreamsh19.github.io/assets/47855638/4a50124f-a837-4681-8ead-68f8a6b4ece5" alt="image" /></p>
+
+<ul>
+  <li>타겟 디렉토리명은 시간이 두자리로 포맷팅된 형태였고, <code class="language-plaintext highlighter-rouge">hr=00</code> 이 아닌 <code class="language-plaintext highlighter-rouge">hr=0</code> 디렉토리를 조회하니, 항상 존재하지 않아 태스크가 실패했던 것이다.</li>
+  <li>그럼 직접적인 원인은 확인했으니, 왜 ‘00’이 아닌 ‘0’으로 들어가고 있는지 더 자세히 알아보기 시작했다.</li>
+</ul>
+
+<h2 id="int-타입의-포맷팅-이슈가-아닐까">int 타입의 포맷팅 이슈가 아닐까?</h2>
+<p>00이 0으로 바뀌었으니, 처음으로 든 생각은 int 타입의 변수가 어떠한 이유로 한자리로 포맷팅되면서 발생한 이슈가 아닐까?라는 생각이었다.<br />
+그러나, 단순 포맷팅 문제라면, 00시 뿐만 아니라, 01시, 02시부터 09시까지 모두 문제가 됐어야했다.<br />
+하지만 실제로 문제가 된건 00시 뿐이었고, 01시~09시까지는 의도대로 두자리수로 처리되어 문제가 없었다.<br />
+그래서 단순 포맷팅 이슈는 아닐꺼라고 판단하여 구체적으로 변수가 변환되는 과정을 추적하기 시작했다.</p>
+
+<h2 id="airflow-템플릿-내부-동작">Airflow 템플릿 내부 동작</h2>
+
+<p>위의 태스크 기록을 봤을때 kwargs로 들어갈때 이미 ‘0’이 들어갔다는 것은 곧 템플릿이 렌더링된 시점에 이미 ‘0’이 되어버린 것이다. 그래서 airflow의 템플릿의 동작 방식을 알아보기 시작했다.<br />
+airflow는 템플릿 문법을 지원하며, 내부적으로 템플릿 엔진으로 jinja를 채택하고 있다.</p>
+<ul>
+  <li><a href="https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/operators.html#jinja-templating">https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/operators.html#jinja-templating</a></li>
+</ul>
+
+<p>그래서 문서를 읽던 중, <code class="language-plaintext highlighter-rouge">render_template_as_native_obj</code> 옵션에 대한 이야기가 있었고, 이 내용이 눈에 띄었다. 이 옵션이 눈에 띈 이유는 최근에 해당 DAG에 <code class="language-plaintext highlighter-rouge">render_template_as_native_obj=True</code> 옵션을 적용하는 배포가 있었기 때문이다.<br />
+해당 옵션은 템플릿화된 변수를 렌더링할때, 단순문자열(디폴트 설정, <code class="language-plaintext highlighter-rouge">render_template_as_native_obj=False</code>)로 렌더링할 것이냐, 아니면 문자열을 파싱해서 파이썬 내장 객체로 렌더링할 것이냐를 지정하는 옵션이다.<br />
+공식 문서에서 설명하고 있는 사용 예시는, dict 형태의 input을 전달받고 싶을때 해당 옵션을 켜줌으로써 <code class="language-plaintext highlighter-rouge">string -&gt; dict</code>로의 변환을 개발자가 아닌 airflow 설정만으로 가능하게 한다.</p>
+
+<p><img src="https://github.com/dreamsh19/dreamsh19.github.io/assets/47855638/cb310bce-69dd-4378-8259-c85baa3f541f" alt="image" /></p>
+
+<p>그래서 최근에 해당 옵션이 적용된 만큼, 실제 설정을 적용했을때의 내부 동작을 좀더 확인해보기 시작했다.</p>
+
+<p><code class="language-plaintext highlighter-rouge">render_template_as_native_obj</code> 옵션을 켜면, 내부적으로 jinja2의 <a href="https://jinja.palletsprojects.com/en/2.11.x/nativetypes/">NativeEnvironment</a>의 render() 함수를 활용하여 파이썬 내장객체를 리턴한다.<br />
+그래서 NativeEnvironment의 render() 함수의 소스코드를 살펴보았고, 일부를 발췌했다.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">//</span> <span class="n">전략</span>
+<span class="k">try</span><span class="p">:</span>
+	<span class="k">return</span> <span class="nf">literal_eval</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+<span class="nf">except </span><span class="p">(</span><span class="nb">ValueError</span><span class="p">,</span> <span class="nb">SyntaxError</span><span class="p">,</span> <span class="nb">MemoryError</span><span class="p">):</span>
+	<span class="k">return</span> <span class="n">raw</span>
+</code></pre></div></div>
+<ul>
+  <li><a href="https://github.com/pallets/jinja/blob/aa3d688a15aece0a0de0b59f94dda870c724bc87/src/jinja2/nativetypes.py#L32-L35">jinja/src/jinja2/nativetypes.py at aa3d688a15aece0a0de0b59f94dda870c724bc87 · pallets/jinja · GitHub</a></li>
+</ul>
+
+<p>결국 내부적으로 ast.literal_eval() 함수를 호출하여 문자열을 내장객체로 파싱하고, 예외가 발생(파싱에 실패)하는 경우 raw, 즉 문자열 원본을 그대로 리턴하는 로직이다.<br />
+(ast는 Abstract Syntax Trees를 의미하는 파이썬 내장 패키지이며, 일종의 파이썬 문법을 파싱하는 패키지정도로 이해했다.)</p>
+
+<p>그렇다면, ast.literal_eval() 함수의 리턴 결과를 직접 확인해보기로 했다. (현재 팀에서 airflow를 구성하는데 사용한 python 3.6.5 버전으로 확인했다)</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>root@server ~]<span class="nv">$ </span>python3
+Python 3.6.5 <span class="o">(</span>default, May  8 2018, 12:10:43<span class="o">)</span>
+<span class="o">[</span>GCC 4.4.7 20120313 <span class="o">(</span>Red Hat 4.4.7-18<span class="o">)]</span> on linux
+Type <span class="s2">"help"</span>, <span class="s2">"copyright"</span>, <span class="s2">"credits"</span> or <span class="s2">"license"</span> <span class="k">for </span>more information.
+<span class="o">&gt;&gt;&gt;</span> import ast
+<span class="o">&gt;&gt;&gt;</span> res <span class="o">=</span> ast.literal_eval<span class="o">(</span><span class="s1">'00'</span><span class="o">)</span>
+<span class="o">&gt;&gt;&gt;</span> res
+0
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">type</span><span class="o">(</span>res<span class="o">)</span>
+&lt;class <span class="s1">'int'</span><span class="o">&gt;</span>
+</code></pre></div></div>
+
+<p>확인 결과, 문제가 됐던 상황처럼 문자열 ‘00’이 int 0으로 파싱되었다!</p>
+
+<p>그렇다면 ‘01’은 int로 파싱이 안되는 것일까?</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&gt;&gt;&gt;</span> res <span class="o">=</span> ast.literal_eval<span class="o">(</span><span class="s1">'01'</span><span class="o">)</span>
+Traceback <span class="o">(</span>most recent call last<span class="o">)</span>:
+  File <span class="s2">"&lt;stdin&gt;"</span>, line 1, <span class="k">in</span> &lt;module&gt;
+  File <span class="s2">"/usr/local/lib/python3.6/ast.py"</span>, line 48, <span class="k">in </span>literal_eval
+    node_or_string <span class="o">=</span> parse<span class="o">(</span>node_or_string, <span class="nv">mode</span><span class="o">=</span><span class="s1">'eval'</span><span class="o">)</span>
+  File <span class="s2">"/usr/local/lib/python3.6/ast.py"</span>, line 35, <span class="k">in </span>parse
+    <span class="k">return </span>compile<span class="o">(</span><span class="nb">source</span>, filename, mode, PyCF_ONLY_AST<span class="o">)</span>
+  File <span class="s2">"&lt;unknown&gt;"</span>, line 1
+    01
+     ^
+SyntaxError: invalid token
+</code></pre></div></div>
+
+<p>‘01’은 파싱에 실패하여 SyntaxError가 발생하였다.<br />
+그리고 위에 발췌한 NativeEnvironment의 render()의 구현에 따르면, SyntaxError가 발생한 경우 원본 문자열인 ‘01’을 리턴하게 된다.<br />
+이것을 통해 ‘00’과 ‘01’의 파싱 결과가 다르다는 사실을 확인했다.</p>
+
+<p>결국 이것을 확인함으로써 모든 것이 명확해졌다.<br />
+<code class="language-plaintext highlighter-rouge">render_template_as_native_obj=True</code> 옵션을 적용하면서 템플릿을 렌더링하는 로직이 달라졌고,<br />
+해당 옵션을 적용했을때의 템플릿 엔진이 문자열 ‘00’을 int 0으로 파싱하게 되면서 00시에는 오류가 발생했고,<br />
+문자열 ‘01’은 파싱에 실패하여 문자열 원본 ‘01’이 그대로 리턴되면서 그외의 시간에는 문제가 발생하지 않았던 것이다.</p>
+
+<h2 id="해결">해결</h2>
+
+<p><code class="language-plaintext highlighter-rouge">render_template_as_native_obj</code> 옵션이 명확하게 원인인 것을 알았으니, 다시 사용하지 않는게 명확한 해결책이지만, 해당 옵션은 다른 태스크에서 활용하고 있었기 때문에 이 해결책은 기각하였다.</p>
+
+<p>결국 우리에게 필요한 것은 아래와 같으므로,</p>
+<ol>
+  <li>int 0이 들어왔을때 00을 리턴한다.</li>
+  <li>string ‘01’~’23’이 들어왔을때 01~23을 리턴한다.</li>
+</ol>
+
+<p>아래와 같이 명시적인 “형변환 후 포맷팅” 로직을 적용하여 해결하였다.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">check_flag_file</span><span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">hour</span><span class="p">):</span>
+	<span class="n">file_path</span><span class="o">=</span><span class="sa">f</span><span class="sh">'</span><span class="si">{</span><span class="n">conf</span><span class="p">.</span><span class="n">hdfs</span><span class="si">}</span><span class="s">/dt=</span><span class="si">{</span><span class="n">date</span><span class="si">}</span><span class="s">/hr=</span><span class="si">{</span><span class="nf">int</span><span class="p">(</span><span class="n">hour</span><span class="p">)</span><span class="si">:</span><span class="mi">02</span><span class="si">}</span><span class="s">/_*</span><span class="sh">'</span>
+	<span class="o">//</span> <span class="n">후략</span>  
+</code></pre></div></div>
+
+<p>결국 해결은 <code class="language-plaintext highlighter-rouge">render_template_as_native_obj</code> 옵션을 활용하진 않았지만, 해당 옵션에 대한 이해가 부족했다면, 적용하지 못했을 해결 방법이다.</p>
+
+<h2 id="추가적인-궁금증">추가적인 궁금증</h2>
+
+<p>위 내용을 통해 ast.literal_eval() 이 이 문제의 범인임은 알았다. 그렇다면 ‘00’은 int 0으로 파싱하면서 ‘01’은 파싱을 못하는 건 ast의 스펙인걸까?<br />
+그래서 ast.literal_eval() 소스코드를 좀 더 살펴보기 시작했다.<br />
+결국 ast 역시 파이썬 내장 compile() 함수에 파싱을 위임하고 있었다.<br />
+<img src="https://github.com/dreamsh19/dreamsh19.github.io/assets/47855638/6c612f4d-41cf-4730-adf5-fb0f5d72b0ae" alt="image" /></p>
+<ul>
+  <li><a href="https://github.com/python/cpython/blob/v3.6.5/Lib/ast.py#L35">cpython/Lib/ast.py at v3.6.5 · python/cpython · GitHub</a></li>
+</ul>
+
+<p>그럼 결국 이건 ast의 스펙이 아니고, 파이썬의 스펙이라는 것인데, 그래서 아래와 같이 확인해봤다.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>root@server ~]<span class="nv">$ </span>python3
+Python 3.6.5 <span class="o">(</span>default, May  8 2018, 12:10:43<span class="o">)</span>
+<span class="o">[</span>GCC 4.4.7 20120313 <span class="o">(</span>Red Hat 4.4.7-18<span class="o">)]</span> on linux
+Type <span class="s2">"help"</span>, <span class="s2">"copyright"</span>, <span class="s2">"credits"</span> or <span class="s2">"license"</span> <span class="k">for </span>more information.
+<span class="o">&gt;&gt;&gt;</span> <span class="nv">a</span><span class="o">=</span>00
+<span class="o">&gt;&gt;&gt;</span> a
+0
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">type</span><span class="o">(</span>a<span class="o">)</span>
+&lt;class <span class="s1">'int'</span><span class="o">&gt;</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="nv">a</span><span class="o">=</span>01
+  File <span class="s2">"&lt;stdin&gt;"</span>, line 1
+    <span class="nv">a</span><span class="o">=</span>01
+       ^
+SyntaxError: invalid token
+</code></pre></div></div>
+
+<p>확인결과, 파이썬의 스펙인듯하다. 파이썬 문법상 리터럴 00은 int 0으로 파싱되지만, 리터럴 01은 파싱에 실패한다.</p>
+
+<p>이걸 이상하게 생각하는 건 나뿐만이 아니었던 듯하다. 관련해서 구글링을 해보니 아래와 같은 글을 찾을 수 있었다.<br />
+<a href="https://stackoverflow.com/questions/31447694/why-does-python-3-allow-00-as-a-literal-for-0-but-not-allow-01-as-a-literal">Why does Python 3 allow “00” as a literal for 0 but not allow “01” as a literal for 1? - Stack Overflow</a></p>
+
+<p>요약하자면, <code class="language-plaintext highlighter-rouge">"0"+</code>이 스페셜 케이스이고, 이걸 도입했을 당시의 명확한 이유가 기억이 나지 않는다고 한다;;<br />
+그래서 많은 사람들이 이러한 스페셜 케이스를 없애자고 제안차 버그 리포트를 올렸으나, 반영이 되지 않아 현재까지 <code class="language-plaintext highlighter-rouge">"0"+</code> 리터럴은 0으로 파싱되고 있다고 한다.</p>
+
+<p><img src="https://github.com/dreamsh19/dreamsh19.github.io/assets/47855638/d09100cc-6ea4-45d8-b3f9-99ede7820f31" alt="image" /></p>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li><a href="https://airflow.apache.org/docs/apache-airflow/2.2.3/concepts/operators.html#jinja-templating">Operators — Airflow Documentation</a></li>
+  <li><a href="https://jinja.palletsprojects.com/en/2.11.x/nativetypes/">Native Python Types — Jinja Documentation (2.11.x)</a></li>
+  <li><a href="https://github.com/pallets/jinja/blob/aa3d688a15aece0a0de0b59f94dda870c724bc87/src/jinja2/nativetypes.py">jinja/src/jinja2/nativetypes.py at aa3d688a15aece0a0de0b59f94dda870c724bc87 · pallets/jinja · GitHub</a></li>
+  <li><a href="https://github.com/python/cpython/blob/v3.6.5/Lib/ast.py">cpython/Lib/ast.py at v3.6.5 · python/cpython · GitHub</a></li>
+  <li><a href="https://docs.python.org/3/library/ast.html#ast.literal_eval">ast — Abstract Syntax Trees — Python 3.12.2 documentation</a></li>
+  <li><a href="https://stackoverflow.com/questions/31447694/why-does-python-3-allow-00-as-a-literal-for-0-but-not-allow-01-as-a-literal">Why does Python 3 allow “00” as a literal for 0 but not allow “01” as a literal for 1? - Stack Overflow</a></li>
+</ul>]]></content><author><name>ㅎㅅㅎ</name><email>dreamsh19@gmail.com</email></author><category term="Airflow" /><category term="Airflow" /><category term="Python" /><summary type="html"><![CDATA[이슈 Airflow 상에서 매시간(hourly) 도는 DAG가 어느 순간부터 00시대에만 항상 실패하는 이슈가 있었다. 해당 태스크는 실패하더라도, 플랜 B가 동작하기 때문에 서비스에 지장은 없었지만, 반복적으로 00시에 실패하는 것이 우연이 아닐 것이라 생각하여 자세히 살펴보기 시작했다.]]></summary></entry><entry><title type="html">Java Optional Deep Dive</title><link href="https://dreamsh19.github.io/java/Java-Optional-Deep-Dive/" rel="alternate" type="text/html" title="Java Optional Deep Dive" /><published>2024-02-18T00:00:00+09:00</published><updated>2024-02-18T00:00:00+09:00</updated><id>https://dreamsh19.github.io/java/Java-Optional-Deep-Dive</id><content type="html" xml:base="https://dreamsh19.github.io/java/Java-Optional-Deep-Dive/"><![CDATA[<p>자바에서 Optional을 사용하면서, Optional의 설계 철학과 사용법을 제대로 알고 사용하고 싶어서 자세히 찾아보게 되었다.</p>
+
+<h2 id="1-optional은-왜-등장했는가">1. Optional은 왜 등장했는가?</h2>
+
+<p>자바 개발자라면 모를수가 없는 악명 높은 예외가 바로 NullPointerException(이하 NPE)이다.<br />
+널 참조는 <a href="https://en.wikipedia.org/wiki/Null_pointer#History">billion dollar mistake</a> 라고 불릴만큼, 악명 높은 디자인 실수(?)인데, 그 이유는 개발자의 실수에 의해 error-prone하기 때문이지 않을까 싶다.<br />
+Optional은 이러한 의도치않은 NPE를 방지하고자 등장했는데, 여러가지 자료를 찾아보고 개인적으로 정리한 Optional의 등장 배경은 크게 아래 두가지인 듯하다.</p>
+
+<h3 id="api-디자인의-명확성-확보-및-npe-방지">API 디자인의 명확성 확보 및 NPE 방지</h3>
+
+<p>Optional의 설계의도와 관련하여 자바 아키텍트 Brian Goetz가 한 말이라고 한다.</p>
+<blockquote>
+  <p>Optional is intended to provide a limited mechanism for library method return types where there needed to be a clear way to represent “no result,” and using null for such was overwhelmingly likely to cause errors.</p>
+</blockquote>
+
+<p>개인적으로 이 말이 Optional 설계의도를 가장 잘 드러내는 말이라고 생각한다.<br />
+저기서 주목한 점은 Optional의 애초에 “메소드의 리턴 타입”을 위해 설계되었다는 점이다. (후술할 Optional의 잘못된 사용과 연관되어 있는 부분이기도 하다.)</p>
+
+<p>Optional이 없던 시절에는 메소드 리턴을 “결과 없음”을 표현하기 위해서는 null을 리턴하는 경우가 종종 있었고,<br />
+null을 리턴할 수 있다는 것 자체가 caller 쪽에 예외처리의 책임을 전가하는 것이기 때문에 NPE에 취약할 수 밖에 없다.</p>
+
+<p>하지만 메서드가 Optional을 리턴한다면, caller 입장에서는 두 가지가 달라진다.<br />
+<strong>첫번째로, 메서드 결과가 empty가 될 수 있음을 명시적으로 알 수 있고,</strong><br />
+<strong>두번째로, 어쨌든 값을 꺼내서 쓰기 위해서는 Optional을 unwrap하는 과정이 강제되기 때문에, 기존의 널 체크와 유사한 로직이 강제된다.</strong></p>
+
+<p>오라클의 Optional 관련 글 중에 Optional의 의도를 잘 이해할 수 있는 부분이 있어 발췌하였다.</p>
+<blockquote>
+  <p>It is important to note that the intention of the <code class="language-plaintext highlighter-rouge">Optional</code> class is not to replace every single null reference. Instead, its purpose is to help design more-comprehensible APIs so that by just reading the signature of a method, you can tell whether you can expect an optional value. This forces you to actively unwrap an <code class="language-plaintext highlighter-rouge">Optional</code> to deal with the absence of a value.</p>
+</blockquote>
+
+<h3 id="코드의-가독성">코드의 가독성</h3>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">String</span> <span class="n">version</span> <span class="o">=</span> <span class="n">computer</span><span class="o">.</span><span class="na">getSoundcard</span><span class="o">().</span><span class="na">getUSB</span><span class="o">().</span><span class="na">getVersion</span><span class="o">();</span>
+</code></pre></div></div>
+
+<p>위와 같은 코드가 있다고 가정해보자. 비즈니스 로직 상에서 흔하게 볼 수 있는 로직의 형태이다.<br />
+그러나, null-safe한 코드 작성을 위해서는 아래와 같이 작성해야한다.</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">String</span> <span class="n">version</span> <span class="o">=</span> <span class="s">"UNKNOWN"</span><span class="o">;</span>
+<span class="k">if</span><span class="o">(</span><span class="n">computer</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">){</span>
+  <span class="nc">Soundcard</span> <span class="n">soundcard</span> <span class="o">=</span> <span class="n">computer</span><span class="o">.</span><span class="na">getSoundcard</span><span class="o">();</span>
+  <span class="k">if</span><span class="o">(</span><span class="n">soundcard</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">){</span>
+    <span class="no">USB</span> <span class="n">usb</span> <span class="o">=</span> <span class="n">soundcard</span><span class="o">.</span><span class="na">getUSB</span><span class="o">();</span>
+    <span class="k">if</span><span class="o">(</span><span class="n">usb</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">){</span>
+      <span class="n">version</span> <span class="o">=</span> <span class="n">usb</span><span class="o">.</span><span class="na">getVersion</span><span class="o">();</span>
+    <span class="o">}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+<p>더 길어진다면, 코드에 점점 indentation이 길어지고, 코드의 가독성은 점점 더 떨어질수 밖에 없다.<br />
+하지만 Optional은 메소드 체이닝을 지원하여 위와 같은 코드를 아래와 같이 작성할 수 있게 된다.</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">String</span> <span class="n">version</span> <span class="o">=</span> <span class="n">computer</span><span class="o">.</span><span class="na">flatMap</span><span class="o">(</span><span class="nl">Computer:</span><span class="o">:</span><span class="n">getSoundcard</span><span class="o">)</span>
+                          <span class="o">.</span><span class="na">flatMap</span><span class="o">(</span><span class="nl">Soundcard:</span><span class="o">:</span><span class="n">getUSB</span><span class="o">)</span>
+                          <span class="o">.</span><span class="na">map</span><span class="o">(</span><span class="nl">USB:</span><span class="o">:</span><span class="n">getVersion</span><span class="o">)</span>
+                          <span class="o">.</span><span class="na">orElse</span><span class="o">(</span><span class="s">"UNKNOWN"</span><span class="o">);</span>
+</code></pre></div></div>
+
+<h2 id="2-optional의-생성">2. Optional의 생성</h2>
+
+<p>Optional 클래스의 프로퍼티는 아래와 같이 구현되어있다.</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">Optional</span><span class="o">&lt;</span><span class="no">T</span><span class="o">&gt;</span> <span class="o">{</span>  
+
+	<span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">Optional</span><span class="o">&lt;?&gt;</span> <span class="no">EMPTY</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Optional</span><span class="o">&lt;&gt;();</span>  
+
+	<span class="kd">private</span> <span class="kd">final</span> <span class="no">T</span> <span class="n">value</span><span class="o">;</span>
+
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>Optional은 기본적으로 컨테이너일 뿐이기 때문에, 프로퍼티로 담고 있을 레퍼런스 하나가 전부이다.<br />
+(스태틱 필드로 <code class="language-plaintext highlighter-rouge">EMPTY</code> 인스턴스가 있긴 하지만, Optional의 의도와는 별개로 싱글턴 객체를 공유함으로써 시간 및 공간상 효율을 위한 프로퍼티이다.)</p>
+
+<p>그리고 Optional의 생성자는 아래 단 두개 뿐이며, 둘다 private이다.</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">private</span> <span class="nf">Optional</span><span class="o">()</span> <span class="o">{</span>  
+	<span class="k">this</span><span class="o">.</span><span class="na">value</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>  
+<span class="o">}</span>
+
+<span class="kd">private</span> <span class="nf">Optional</span><span class="o">(</span><span class="no">T</span> <span class="n">value</span><span class="o">)</span> <span class="o">{</span>  
+	<span class="k">this</span><span class="o">.</span><span class="na">value</span> <span class="o">=</span> <span class="nc">Objects</span><span class="o">.</span><span class="na">requireNonNull</span><span class="o">(</span><span class="n">value</span><span class="o">);</span>  
+<span class="o">}</span>
+</code></pre></div></div>
+<p>이는 곧, 직접적인 생성자 호출을 통한 생성을 금지하려는 의도이다. 그렇다면, 실제 Optional 인스턴스를 생성하기 위해서는 어떻게 해야할까?</p>
+
+<p>이를 위해서 Optional 클래스에서는 아래 세가지 static 메소드를 제공한다.</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">static</span> <span class="o">&lt;</span><span class="no">T</span><span class="o">&gt;</span> <span class="nc">Optional</span><span class="o">&lt;</span><span class="no">T</span><span class="o">&gt;</span> <span class="nf">of</span><span class="o">(</span><span class="no">T</span> <span class="n">value</span><span class="o">)</span> <span class="o">{</span>  
+	<span class="k">return</span> <span class="k">new</span> <span class="nc">Optional</span><span class="o">&lt;&gt;(</span><span class="n">value</span><span class="o">);</span>  
+<span class="o">}</span>
+
+<span class="kd">public</span> <span class="kd">static</span><span class="o">&lt;</span><span class="no">T</span><span class="o">&gt;</span> <span class="nc">Optional</span><span class="o">&lt;</span><span class="no">T</span><span class="o">&gt;</span> <span class="nf">empty</span><span class="o">()</span> <span class="o">{</span>  
+	<span class="nd">@SuppressWarnings</span><span class="o">(</span><span class="s">"unchecked"</span><span class="o">)</span>  
+	<span class="nc">Optional</span><span class="o">&lt;</span><span class="no">T</span><span class="o">&gt;</span> <span class="n">t</span> <span class="o">=</span> <span class="o">(</span><span class="nc">Optional</span><span class="o">&lt;</span><span class="no">T</span><span class="o">&gt;)</span> <span class="no">EMPTY</span><span class="o">;</span>  
+	<span class="k">return</span> <span class="n">t</span><span class="o">;</span>  
+<span class="o">}</span>
+
+<span class="kd">public</span> <span class="kd">static</span> <span class="o">&lt;</span><span class="no">T</span><span class="o">&gt;</span> <span class="nc">Optional</span><span class="o">&lt;</span><span class="no">T</span><span class="o">&gt;</span> <span class="nf">ofNullable</span><span class="o">(</span><span class="no">T</span> <span class="n">value</span><span class="o">)</span> <span class="o">{</span>  
+	<span class="k">return</span> <span class="n">value</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">?</span> <span class="n">empty</span><span class="o">()</span> <span class="o">:</span> <span class="n">of</span><span class="o">(</span><span class="n">value</span><span class="o">);</span>  
+<span class="o">}</span>
+</code></pre></div></div>
+
+<h2 id="3-올바른-사용법">3. 올바른 사용법</h2>
+<ul>
+  <li>map, filter 등의 각종 메소드는 사실 직관적이기 때문에 따로 정리할 필요는 없을 듯하고,</li>
+  <li>다만, 잘못 사용하는 경우 주의가 필요하여 정리하고자 한다.</li>
+</ul>
+
+<h3 id="31-함수-파라미터로-optional-사용">3.1. 함수 파라미터로 Optional 사용</h3>
+
+<p>이는 사실 앞에서 기술한 Optional의 등장 배경과 철학을 알지 못하는 경우에 사용하기 쉽다.<br />
+아래와 같이 파라미터로 Optional을 받는 메서드(또는 생성자)가 있다고 가정해보자.<br />
+얼핏보면, Optional 이라는 이름에 걸맞게 attachment가 있는 경우와 없는 경우를 잘 표현한 듯 보인다.</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="nf">SystemMessage</span><span class="o">(</span><span class="nc">String</span> <span class="n">title</span><span class="o">,</span> <span class="nc">String</span> <span class="n">content</span><span class="o">,</span> <span class="nc">Optional</span><span class="o">&lt;</span><span class="nc">Attachment</span><span class="o">&gt;</span> <span class="n">attachment</span><span class="o">)</span> <span class="o">{</span>
+	<span class="c1">// 생략</span>
+	<span class="n">attachment</span><span class="o">.</span><span class="na">ifPresent</span><span class="o">(</span><span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">::</span><span class="n">println</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>그러나, 이는 Optional의 의도상 지양하는 코드이다.<br />
+그 이유는 위와 같은 메서드는 아래와 같은 코드를 호출가능하게 만들고, 이는 결국 런타임에 NPE가 발생할 수 밖에 없다.</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nc">SystemMessage</span><span class="o">(</span><span class="s">"title"</span><span class="o">,</span> <span class="s">"content"</span><span class="o">,</span> <span class="kc">null</span><span class="o">)</span>  
+</code></pre></div></div>
+
+<p>NPE를 방지하기 위해 만든 Optional을 잘못 사용하여 오히려 NPE가 발생하는 꼴이다.</p>
+
+<h3 id="32-직렬화">3.2. 직렬화</h3>
+
+<p>Optional은 Serializable 인터페이스를 구현하지 않는다. 즉, 직렬화를 하려고 하면 NotSerializableException이 발생한다.<br />
+이 역시 사람들이 “null이 될 수 있는”의 의미로 Optional을 사용하면서 발생한 오해(?)이다. 사람들은 Optional을 클래스 내에서 “null이 될 수 있는 프로퍼티”로 사용하려고 했고, 그러면서 자연스럽게 직렬화에 대한 니즈가 발생했다.<br />
+그럼에도 현재까지 Optional에 Serializable 구현을 추가하지 않았는데, 그 이유는 Optional을 “메서드의 리턴타입”으로만 사용하게 하는 것이 본래 그 의도에 맞다고 판단했기 때문이라고한다.</p>
+<ul>
+  <li><a href="https://mail.openjdk.org/pipermail/jdk8-dev/2013-September/003274.html">Shouldn’t Optional be Serializable?</a></li>
+</ul>
+
+<h3 id="33-불필요한-orelse-사용">3.3. 불필요한 orElse() 사용</h3>
+
+<p>Optional는 orElse()와 orElseGet() 두가지를 제공한다. 얼핏보면 비슷해보이는데, 두 가지의 차이는 무엇일까?</p>
+
+<p>두 가지의 차이점은 “lazy하게 동작하는가”에 차이가 있다. 구현을 보면 알 수 있다.</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="no">T</span> <span class="nf">orElse</span><span class="o">(</span><span class="no">T</span> <span class="n">other</span><span class="o">)</span> <span class="o">{</span>  
+	<span class="k">return</span> <span class="n">value</span> <span class="o">!=</span> <span class="kc">null</span> <span class="o">?</span> <span class="n">value</span> <span class="o">:</span> <span class="n">other</span><span class="o">;</span>  
+<span class="o">}</span>
+
+<span class="kd">public</span> <span class="no">T</span> <span class="nf">orElseGet</span><span class="o">(</span><span class="nc">Supplier</span><span class="o">&lt;?</span> <span class="kd">extends</span> <span class="no">T</span><span class="o">&gt;</span> <span class="n">other</span><span class="o">)</span> <span class="o">{</span>  
+	<span class="k">return</span> <span class="n">value</span> <span class="o">!=</span> <span class="kc">null</span> <span class="o">?</span> <span class="n">value</span> <span class="o">:</span> <span class="n">other</span><span class="o">.</span><span class="na">get</span><span class="o">();</span>  
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>orElseGet()은 Optional이 null이 아닐때만 lazy하게 결과를 가져온다.<br />
+하지만, orElse()는 함수 호출 이전에 이미 파라미터로 값을 넣어주어야하기 때문에 null 여부와 무관하게 항상 연산이 발생하게 되고, null이 아닌 경우에는 값이 쓰이지도 않기 때문에 이는 낭비이다.<br />
+만약 그 연산의 비용이 비싼 연산이라면(예를 들면, db와 통신 등) 불필요한 비용을 계속 발생시키게 된다.</p>
+
+<h2 id="4-한계">4. 한계</h2>
+
+<p>개인적으로 생각한 Optional의 한계는 아래 두 가지인듯하다.</p>
+<ol>
+  <li>시간과 공간상 오버헤드가 발생한다
+    <ul>
+      <li>아무래도, wrap/unwrap 하는 과정이 필요하고 추가적인 메모리할당이 필요하기 때문에 오버헤드는 불가피해보인다.</li>
+    </ul>
+  </li>
+  <li>완전히 강제할 수 없다.
+    <ul>
+      <li>개발자가 위의 “사용법”을 유념하고 사용해야한다는 것 자체가 한계로 보인다.</li>
+      <li>기존에 null을 사용하던 것에 비해서는 훨씬 에러 가능성이 줄어들었지만, 여전히 <code class="language-plaintext highlighter-rouge">Optional.ofNullable(null).get()</code> 과 같은 형태의 코드를 컴파일 타임에 잡아낼 수 없다.</li>
+      <li>이는 결국 Optional이 자바 언어 레벨에서 지원하는 것이 아니라 단순 코드 레벨에서 제공하기 때문에 발생할 수 없는 한계가 아닐까 생각한다.</li>
+    </ul>
+  </li>
+</ol>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li><a href="https://www.oracle.com/technical-resources/articles/java/java8-optional.html">Tired of Null Pointer Exceptions? Consider Using Java SE 8’s Optional!</a></li>
+  <li><a href="https://kotlinlang.org/docs/null-safety.html#nullable-types-and-non-nullable-types">Null safety - Kotlin Documentation</a></li>
+  <li><a href="https://docs.oracle.com/javase/8/docs/api/java/util/Optional.html">Optional (Java Platform SE 8 )</a></li>
+  <li><a href="https://stackoverflow.com/questions/24547673/why-java-util-optional-is-not-serializable-how-to-serialize-the-object-with-suc">serialization - Why java.util.Optional is not Serializable, how to serialize the object with such fields - Stack Overflow</a></li>
+  <li><a href="https://mangkyu.tistory.com/203">[Java] 언제 Optional을 사용해야 하는가? 올바른 Optional 사용법 가이드 - (2/2) - MangKyu’s Diary</a></li>
+  <li><a href="https://www.baeldung.com/java-optional">Guide To Java 8 Optional - Baeldung</a></li>
+  <li><a href="https://mail.openjdk.org/pipermail/jdk8-dev/2013-September/003274.html">Shouldn’t Optional be Serializable?</a></li>
+</ul>]]></content><author><name>ㅎㅅㅎ</name><email>dreamsh19@gmail.com</email></author><category term="Java" /><category term="Java" /><summary type="html"><![CDATA[자바에서 Optional을 사용하면서, Optional의 설계 철학과 사용법을 제대로 알고 사용하고 싶어서 자세히 찾아보게 되었다.]]></summary></entry><entry><title type="html">JsonInclude를 활용한 데이터 사이즈 축소</title><link href="https://dreamsh19.github.io/java/JsonInclude%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-%EB%8D%B0%EC%9D%B4%ED%84%B0-%EC%82%AC%EC%9D%B4%EC%A6%88-%EC%B6%95%EC%86%8C/" rel="alternate" type="text/html" title="JsonInclude를 활용한 데이터 사이즈 축소" /><published>2024-02-04T00:00:00+09:00</published><updated>2024-02-04T00:00:00+09:00</updated><id>https://dreamsh19.github.io/java/JsonInclude%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-%EB%8D%B0%EC%9D%B4%ED%84%B0-%EC%82%AC%EC%9D%B4%EC%A6%88-%EC%B6%95%EC%86%8C</id><content type="html" xml:base="https://dreamsh19.github.io/java/JsonInclude%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-%EB%8D%B0%EC%9D%B4%ED%84%B0-%EC%82%AC%EC%9D%B4%EC%A6%88-%EC%B6%95%EC%86%8C/"><![CDATA[<h2 id="이슈">이슈</h2>
+
+<ul>
+  <li>서버에서 요청마다 남기는 로그 중 json으로 남기는 로그가 있었고, 서버에서 처리하는 요청수가 늘어남에 따라 로그 크기가 커지면서, 로그 크기를 줄여야하는 상황이 발생했다.</li>
+  <li>로그를 살펴보다보니, <code class="language-plaintext highlighter-rouge">"key":"value"</code> 를 구조로 된 json 포맷 특성상 의미없는 value(null, empty string, 빈 배열 등)를 갖는 필드에 대해서도 모두 키값이 기록되고 있음을 확인했고, 그 비율이 적지 않음을 확인했다.</li>
+  <li>value가 의미없는 경우 필드 자체를 남기지 않게 되면 로그 크기가 많이 줄어들 것으로 예상되어 작업에 착수했다.</li>
+  <li>다만, 필드별로 “의미없음”의 의미가 다를 수 있기 때문에 각 필드별로 “의미없음”의 기준에 따라 json에 포함하지 않는 것이 필요했다.</li>
+</ul>
+
+<h2 id="현황">현황</h2>
+
+<p>일반적으로 jvm 계열 언어(자바, 코틀린, 스칼라 등)에서 데이터 직렬화/역직렬화에 많이 사용하는 jackson 라이브러리를 사용해서 POJO 객체(아래 예시에서는 <code class="language-plaintext highlighter-rouge">LogEntry</code>)를 json으로 직렬화하고 있었다.<br />
+기존 코드 상에는 POJO 클래스 전체에 대해 <code class="language-plaintext highlighter-rouge">JsonInclude.Include.NON_NULL</code> 정도만 적용이 되어 있었다.</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@JsonInclude</span><span class="o">(</span><span class="nc">JsonInclude</span><span class="o">.</span><span class="na">Include</span><span class="o">.</span><span class="na">NON_NULL</span><span class="o">)</span>  
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">LogEntry</span> <span class="o">{</span>
+	<span class="c1">// 생략</span>
+	<span class="kd">private</span> <span class="kd">final</span> <span class="nc">String</span> <span class="n">name</span><span class="o">;</span>
+	<span class="c1">// 생략</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>그렇기 때문에 필드별로 세분화된 <code class="language-plaintext highlighter-rouge">JsonInclude</code> 정책은 따로 없었고, 필드별 세분화된 설정을 위해서 코드 상에서 null로 바꿔주는 식으로 구현이 되어있었다.<br />
+예를 들어, String 타입의 특정 필드가 empty string(““)인 경우 포함하지 않는 요구사항을 위해서 아래와 같이 null로 변환하여 넣어주는 식이었다.</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">this</span><span class="o">.</span><span class="na">name</span> <span class="o">=</span> <span class="s">""</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">name</span><span class="o">)?</span> <span class="kc">null</span> <span class="o">:</span> <span class="n">name</span><span class="o">;</span>
+</code></pre></div></div>
+
+<p>위와 같은 코드는 비즈니스 로직이라기보다 단순히 직렬화에 포함시키지 않기 위한 목적의 코드라고 생각이 들었고,<br />
+코드의 가독성 측면에서도 <code class="language-plaintext highlighter-rouge">JsonInclude</code>라는 명시적인 애너테이션을 사용하는 것이 self-documenting 관점에서 더 직관적일 것 같다는 생각이 들었다.</p>
+
+<p>그래서 JsonInclude의 구현을 찾아 들어가보니 <code class="language-plaintext highlighter-rouge">NON_NULL</code> 외에도 활용이 가능한 여러가지 enum이 있다는 것을 알게 됐다.<br />
+이 enum을 활용한다면, 코드 상에서의 별도 처리 없이 필드별 json 직렬화 기준을 오버라이딩할 수 있을 것 같다는 생각에 관련된 java doc을 자세히 살펴보았다.</p>
+
+<h2 id="jsoninclude-enum-종류">JsonInclude enum 종류</h2>
+
+<p>JsonInclude안에 들어갈 수 있는 값들은 기본적으로 “json에 어디까지 포함할지”에 그 범위에 대한 enum 타입들이며, 직렬화 단계에서만 적용되는 애너테이션이다.<br />
+(처음에는 역직렬화 단계에서는 어떻게 적용이 되는걸까 생각했으나, 역직렬화 단계에서는 사실 필요가 없다. 필드가 없으면 역직렬화 단계에서 해당 프로퍼티 타입의 디폴트 값이 될 것이고, 필드가 있다면 그대로 역직렬화를 하면 되기 때문이다. 역직렬화시 관련된 애너테이션에는 <code class="language-plaintext highlighter-rouge">@JsonIgnoreProperties</code>가 있다.)</p>
+
+<p>아래에 jackson 라이브러리의 현재 기준 latest인 2.16.1 버전 기준으로, 사용가능한 JsonInclude의 enum 타입들에 대한 내용을 정리했다.<br />
+아래로 갈수록 json에서 제외되는 기준이 확장된다(혹은 포함될수 있는 기준이 타이트해진다)고 볼 수 있다.</p>
+
+<h3 id="1-always">1. ALWAYS</h3>
+<ul>
+  <li>무조건 json에 포함한다.</li>
+  <li>별도로 지정하지 않았을때의 디폴트값이다.
+    <ul>
+      <li><a href="https://github.com/FasterXML/jackson-annotations/blob/e1910b8b7bfda325d450a30f1a121b5cf75d819a/src/main/java/com/fasterxml/jackson/annotation/JsonInclude.java#L58">jackson-annotations/src/main/java/com/fasterxml/jackson/annotation/JsonInclude.java at e1910b8b7bfda325d450a30f1a121b5cf75d819a · FasterXML/jackson-annotations · GitHub</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="2-non_null">2. NON_NULL</h3>
+<ul>
+  <li>명시적인 null일때만 제외</li>
+  <li>당연하게도, null이 될 수 없는 원시타입에 대해서는 ALWAYS와 동일하게 동작한다.</li>
+</ul>
+
+<h3 id="3-non_absent">3. NON_ABSENT</h3>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">NON_NULL</code> 기준을 상속하며,</li>
+  <li>컨테이너 타입(Optional, AtomicReference 등)의 내부가 비어있을 때 제외한다.
+    <ul>
+      <li>예를 들면, Optional의 isEmpty()인 경우 제외</li>
+    </ul>
+  </li>
+  <li>주로 Optional 타입과 함께 사용한다.</li>
+  <li>2.6부터 사용 가능</li>
+</ul>
+
+<h3 id="4-non_empty">4. NON_EMPTY</h3>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">NON_ABSENT</code> 기준을 상속하며,</li>
+  <li>컬렉션, 배열, String이 empty인 경우 제외한다.
+    <ul>
+      <li>Collection, Map의 isEmpty 인 경우</li>
+      <li>자바 배열 <code class="language-plaintext highlighter-rouge">length==0</code></li>
+      <li>empty String(“”)</li>
+    </ul>
+  </li>
+  <li>단, jackson 2.6에 대해서는 예외사항이 있음
+    <ul>
+      <li>2.6 버전에서는 원시타입 등에 대해 empty의 범위가 확장되었으나(예를 들면 int의 0도 empty로 포함하였으나), 2.7 버전에서 롤백되었음.</li>
+      <li>2.6을 제외한 버전에서는 위와 같은 경우 NON_DEFAULT를 사용</li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="5-non_default">5. NON_DEFAULT</h3>
+<ul>
+  <li>클래스(POJO)에 적용된 경우와 그렇지 않은 경우로 동작이 나뉜다.</li>
+  <li>클래스에 적용된 경우
+    <ul>
+      <li>디폴트 POJO 객체(Zero Argument 생성자에 의해 생성된 객체)와 equals() 연산결과가 true를 리턴하는 경우 제외</li>
+    </ul>
+  </li>
+  <li>클래스 외에 적용된 경우(global 설정 또는 프로퍼티에 적용된 경우)
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">NON_EMPTY</code> 기준을 상속하며,</li>
+      <li>원시타입 및 Wrapper 타입의 디폴트 값(ex. int의 0)인 경우 제외.</li>
+      <li>Date/Time 중 0L에 대응되는 경우 제외.</li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="6-use_defaults">6. USE_DEFAULTS</h3>
+<ul>
+  <li>실제 동작에는 영향을 주지 않고, Inclusion에 대한 디폴트 설정을 따르겠다는 것을 명시적으로 설정할때 사용한다.</li>
+  <li>즉, 명시하지 않은 것과 동일하게 동작한다. (명시하지 않아도 디폴트를 따를테니)</li>
+  <li>그럼에도 해당 값이 필요한 이유는 해당 값을 사용하게 되면, 디폴트 사용을 강제할 수 있기 때문에 다른 개발자가 inclusion 설정을 오버라이딩하는 것을 방지할 수 있다.</li>
+  <li>그리고 디폴트를 사용하겠다는 것을 명시적으로 선언하는 것이므로, 문서화로서의 의미도 있다.</li>
+</ul>
+
+<h2 id="실제-적용">실제 적용</h2>
+
+<p>위 내용을 바탕으로, 실제로는 아래 세 가지를 적용했다.</p>
+<ol>
+  <li><code class="language-plaintext highlighter-rouge">NON_NULL</code>
+    <ul>
+      <li>대부분의 경우 NON_NULL로 충분했기 때문에, (명시적으로 null인 경우가 실제로 로그에도 남길 필요 없는 경우였다.)</li>
+      <li><strong>클래스 단위에 주로 적용했다.</strong></li>
+      <li>클래스 단위에 적용하는 경우, 해당 클래스 내 모든 프로퍼티는 그 속성을 따라가기 때문에 클래스 내 디폴트 설정으로 사용하기 적합했다.</li>
+      <li>그리고 그 외에 추가로 직렬화 조건이 필요한 프로퍼티의 경우 아래 두가지로 오버라이딩 하는 방식을 채택했다.</li>
+    </ul>
+  </li>
+  <li><code class="language-plaintext highlighter-rouge">NON_EMPTY</code>
+    <ul>
+      <li>로그 내 List 타입의 필드가 있었는데, empty List 인 경우에는 남기지 않기 위해 적용했다.</li>
+      <li>오히려 String 타입의 프로퍼티의 경우, empty string(““)인 경우에 명시적으로 남겨야하는 경우가 많아서 <code class="language-plaintext highlighter-rouge">NON_EMPTY</code> 대신 <code class="language-plaintext highlighter-rouge">NON_NULL</code>을 적용했다.</li>
+    </ul>
+  </li>
+  <li><code class="language-plaintext highlighter-rouge">NON_DEFAULT</code>
+    <ul>
+      <li>원시 타입(int)에 대해 0인 경우에는 남기지 않도록 하기 위해 적용했다.</li>
+      <li>참고로, 0과 null을 구분해야하고, 0인 경우 로그에 남아야하는 경우에는 wrapper type + <code class="language-plaintext highlighter-rouge">NON_NULL</code>의 조합을 채택했다.</li>
+    </ul>
+  </li>
+</ol>
+
+<p>실제 적용한 최종 결과를 요약하면 아래와 같은 형태이다.</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@JsonInclude</span><span class="o">(</span><span class="nc">JsonInclude</span><span class="o">.</span><span class="na">Include</span><span class="o">.</span><span class="na">NON_NULL</span><span class="o">)</span>  
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">LogEntry</span> <span class="o">{</span>
+
+	<span class="nd">@JsonProperty</span><span class="o">(</span><span class="s">"tid"</span><span class="o">)</span>  
+	<span class="kd">private</span> <span class="kd">final</span> <span class="nc">String</span> <span class="n">transactionId</span><span class="o">;</span>  
+
+	<span class="nd">@JsonProperty</span><span class="o">(</span><span class="s">"price"</span><span class="o">)</span>  
+	<span class="kd">private</span> <span class="kd">final</span> <span class="nc">Double</span> <span class="n">price</span><span class="o">;</span>  <span class="c1">// 0.0과 null을 구분하고, 0.0은 로그에 남겨야하는 경우</span>
+
+	<span class="nd">@JsonInclude</span><span class="o">(</span><span class="nc">JsonInclude</span><span class="o">.</span><span class="na">Include</span><span class="o">.</span><span class="na">NON_DEFAULT</span><span class="o">)</span>  
+	<span class="nd">@JsonProperty</span><span class="o">(</span><span class="s">"et"</span><span class="o">)</span>  
+	<span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">elapsedTime</span><span class="o">;</span>
+
+	<span class="nd">@JsonInclude</span><span class="o">(</span><span class="nc">JsonInclude</span><span class="o">.</span><span class="na">Include</span><span class="o">.</span><span class="na">NON_EMPTY</span><span class="o">)</span>
+	<span class="nd">@JsonProperty</span><span class="o">(</span><span class="s">"res_list"</span><span class="o">)</span>
+	<span class="kd">private</span> <span class="kd">final</span> <span class="nc">List</span><span class="o">&lt;</span><span class="nc">Response</span><span class="o">&gt;</span> <span class="n">responseList</span><span class="o">;</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>그리고 위 내용을 적용 결과, 해당 설정만으로 로그 사이즈를 기존대비 25%나 줄일 수 있었다!</p>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li><a href="https://github.com/FasterXML/jackson-annotations/tree/jackson-annotations-2.16.1">GitHub - FasterXML/jackson-annotations at jackson-annotations-2.16.1</a></li>
+  <li><a href="https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-annotations/2.16.1/index.html">https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-annotations/2.16.1/index.html</a></li>
+  <li><a href="https://yuma1029.tistory.com/9">[SpringMVC] 업무에서 활용한 @JsonInclude 사용법 정리</a></li>
+</ul>]]></content><author><name>ㅎㅅㅎ</name><email>dreamsh19@gmail.com</email></author><category term="Java" /><category term="Java" /><summary type="html"><![CDATA[이슈]]></summary></entry></feed>

@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.21.0 by Michael Rose
+  Copyright 2013-2020 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+--><html lang="en" class="no-js">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>Nginx 414 Request Uri Too Large - 기술을 기술하다</title>
+<meta name="description" content="성능 테스트를 위해 go 기반의 http 로드 테스팅 툴인 vegata 를 이용하여 진행하던 중 이상한 점을 발견했다.">
+
+
+  <meta name="author" content="ㅎㅅㅎ">
+  
+  <meta property="article:author" content="ㅎㅅㅎ">
+  
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="기술을 기술하다">
+<meta property="og:title" content="Nginx 414 Request Uri Too Large">
+<meta property="og:url" content="https://dreamsh19.github.io/nginx/Nginx-414-Request-URI-Too-Large/">
+
+
+  <meta property="og:description" content="성능 테스트를 위해 go 기반의 http 로드 테스팅 툴인 vegata 를 이용하여 진행하던 중 이상한 점을 발견했다.">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2021-05-01T00:00:00+09:00">
+
+
+
+
+
+  
+
+  
+
+
+<link rel="canonical" href="https://dreamsh19.github.io/nginx/Nginx-414-Request-URI-Too-Large/">
+
+
+
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    
+      "@type": "Person",
+      "name": "서버 개발자",
+      "url": "https://dreamsh19.github.io/"
+    
+  }
+</script>
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+<link href="/feed.xml" type="application/atom+xml" rel="alternate" title="기술을 기술하다 Feed">
+
+<!-- https://t.co/dKP3o1e -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script>
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<!--[if IE]>
+  <style>
+    /* old IE unsupported flexbox fixes */
+    .greedy-nav .site-title {
+      padding-right: 3em;
+    }
+    .greedy-nav button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+    }
+  </style>
+<![endif]-->
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single">
+    <nav class="skip-links">
+  <h2 class="screen-reader-text">Skip links</h2>
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    <!--[if lt IE 9]>
+<div class="notice--danger align-center" style="margin: 0;">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience.</div>
+<![endif]-->
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          기술을 기술하다
+          
+        </a>
+        <ul class="visible-links">
+<li class="masthead__menu-item">
+              <a href="/">Home</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/categories/">Categories</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/tags/">Tags</a>
+            </li>
+</ul>
+        
+        <button class="search__toggle" type="button">
+          <span class="visually-hidden">Toggle search</span>
+          <svg class="icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 15.99 16">
+            <path d="M15.5,13.12L13.19,10.8a1.69,1.69,0,0,0-1.28-.55l-0.06-.06A6.5,6.5,0,0,0,5.77,0,6.5,6.5,0,0,0,2.46,11.59a6.47,6.47,0,0,0,7.74.26l0.05,0.05a1.65,1.65,0,0,0,.5,1.24l2.38,2.38A1.68,1.68,0,0,0,15.5,13.12ZM6.4,2A4.41,4.41,0,1,1,2,6.4,4.43,4.43,0,0,1,6.4,2Z" transform="translate(-.01)"></path>
+          </svg>
+        </button>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+
+
+<div itemscope itemtype="https://schema.org/Person">
+
+  
+
+  <div class="author__content">
+    
+      <h3 class="author__name" itemprop="name">ㅎㅅㅎ</h3>
+    
+    
+      <div class="author__bio" itemprop="description">
+        <p>Backend Dev</p>
+
+      </div>
+    
+  </div>
+
+  <div class="author__urls-wrapper">
+    <button class="btn btn--inverse">Follow</button>
+    <ul class="author__urls social-icons">
+      
+        <li itemprop="homeLocation" itemscope itemtype="https://schema.org/Place">
+          <i class="fas fa-fw fa-map-marker-alt" aria-hidden="true"></i> <span itemprop="name">South Korea</span>
+        </li>
+      
+
+      
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+            <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i><span class="label">GitHub</span></a></li>
+          
+        
+          
+            <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span class="label">LinkedIn</span></a></li>
+          
+        
+          
+        
+      
+
+      
+
+      
+        <li>
+          <a href="mailto:dreamsh19@gmail.com">
+            <meta itemprop="email" content="dreamsh19@gmail.com">
+            <i class="fas fa-fw fa-envelope-square" aria-hidden="true"></i><span class="label">Email</span>
+          </a>
+        </li>
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      <!--
+  <li>
+    <a href="http://link-to-whatever-social-network.com/user/" itemprop="sameAs" rel="nofollow noopener noreferrer">
+      <i class="fas fa-fw" aria-hidden="true"></i> Custom Social Profile Link
+    </a>
+  </li>
+-->
+    </ul>
+  </div>
+</div>
+
+  
+  <a href="https://hits.seeyoufarm.com" style="display: none;">
+    <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fdreamsh19.github.io&count_bg=%2348AFB3&title_bg=%237D8B8E&icon=&icon_color=%23360E0E&title=hits&edge_flat=false">
+  </a>  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="Nginx 414 Request Uri Too Large">
+    <meta itemprop="description" content="성능 테스트를 위해 go 기반의 http 로드 테스팅 툴인 vegata 를 이용하여 진행하던 중 이상한 점을 발견했다.">
+    <meta itemprop="datePublished" content="2021-05-01T00:00:00+09:00">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">Nginx 414 Request Uri Too Large
+</h1>
+          
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right sticky">
+            <nav class="toc">
+              <header><h4 class="nav__title">
+<i class="fas fa-file-alt"></i> On this page</h4></header>
+              <ul class="toc__menu">
+<li><a href="#%EC%9D%B4%EC%8A%88">이슈</a></li>
+<li><a href="#http-status-code-414">Http status code 414</a></li>
+<li>
+<a href="#nginx-client-request-header-buffer">Nginx client request header buffer</a><ul>
+<li><a href="#1-%EC%9D%BC%EB%B0%98%EC%A0%81%EC%9D%B8-%EC%9A%94%EC%B2%AD">1. 일반적인 요청</a></li>
+<li><a href="#2-header-size%EA%B0%80-%ED%81%B0-%EC%9A%94%EC%B2%AD">2. Header size가 큰 요청</a></li>
+</ul>
+</li>
+<li>
+<a href="#client%EC%97%90-%EB%94%B0%EB%A5%B8-%ED%97%A4%EB%8D%94-%ED%81%AC%EA%B8%B0-%EC%B0%A8%EC%9D%B4">Client에 따른 헤더 크기 차이</a><ul>
+<li><a href="#1-curl">1. curl</a></li>
+<li><a href="#2-postman">2. Postman</a></li>
+<li><a href="#3-chrome-browser">3. Chrome browser</a></li>
+</ul>
+</li>
+<li><a href="#%ED%95%B4%EA%B2%B0-%EB%B0%A9%EB%B2%95">해결 방법</a></li>
+<li><a href="#references">References</a></li>
+</ul>
+
+            </nav>
+          </aside>
+        
+        <p>성능 테스트를 위해 go 기반의 http 로드 테스팅 툴인 <a href="https://github.com/tsenart/vegeta">vegata</a> 를 이용하여 진행하던 중 이상한 점을 발견했다.</p>
+
+<h2 id="이슈">이슈</h2>
+
+<ul>
+  <li>vegeta를 이용하여 테스트를 진행했을 때는 모두 200 OK를 반환</li>
+  <li>그런데 동일한 요청을 로컬에서 브라우저 또는 Postman으로 테스트했을 때는 414 Request URI Too Large가 반환</li>
+  <li>상태 코드의 이름에서 알 수 있듯이, Request URI가 너무 길어서 발생한 것임(실제로 요청의 쿼리 파라미터가 매우 긴 형태였다)을 유추할 수는 있었지만 그렇다면 vegeta로 요청을 보냈을때도 마찬가지로 414가 반환되어야 하는데, 왜 200이 반환되었는가?</li>
+</ul>
+
+<p>같은 요청에 대해 다른 결과가 나오는 것이 의아하기도 했고, http status code 중 414는 처음 접하는 에러인지라 이 에러에 대해 찾아보게 되었다.</p>
+
+<h2 id="http-status-code-414">Http status code 414</h2>
+
+<p>Http status code 414는 URI Too Long에 해당하는 status code로, 서버가 정한 요청 uri의 최대길이보다 더 큰 요청을 보냈을 때 반환하는 상태 코드이다.</p>
+
+<p>주로 발생하는 경우는 아래와 같다.</p>
+
+<ul>
+  <li>post 요청을 get 요청으로 전환하여 쿼리 파라미터가 아주 길어지는 경우</li>
+  <li>redirection loop에 빠지는 경우(redirection uri가 다시 자신을 가리키는 경우 등)</li>
+  <li>혹은 악의적으로 uri를 길게 구성하여 보안 취약점을 이용하려는 경우</li>
+</ul>
+
+<p>사용하는 웹서버는 nginx로 구성했기 때문에 nginx에서 해당 에러와 관련된 설정을 찾아보았다.</p>
+
+<h2 id="nginx-client-request-header-buffer">Nginx client request header buffer</h2>
+
+<p>Nginx의 경우에는 client request header buffer라는 것이 존재하고, 클라이언트에서 요청을 보내면, 해당 요청의 request header를 버퍼에 저장하는 방식으로 작동한다. 그런데 그 버퍼의 종류에는 두가지가 있는데, 일반적인 요청의 경우에 사용하는 버퍼와 request header가 큰 요청의 경우이다.</p>
+
+<h3 id="1-일반적인-요청">1. 일반적인 요청</h3>
+
+<p>Nginx의 경우 <code class="language-plaintext highlighter-rouge">client_header_buffer_size</code> 라는 변수로 일반적인 요청에 대한 헤더 버퍼 크기를 지정한다. 디폴트 값은 1KB이다. 대부분의 경우는 1KB를 넘지 않기 때문에 이 버퍼를 거쳐간다. 그리고 이 버퍼의 사이즈를 초과하는 요청이 들어왔을 경우에는 아래에서 다룰, 조금 더 큰 버퍼로 처리하게 된다.</p>
+
+<p><img src="https://raw.githubusercontent.com/dreamsh19/dreamsh19.github.io/master/assets/image/image-20210509172245182.png" alt="image-20210509172245182"></p>
+
+<h3 id="2-header-size가-큰-요청">2. Header size가 큰 요청</h3>
+
+<p>요청 header size가 위에서 지정한 <code class="language-plaintext highlighter-rouge">client_header_buffer_size</code> 를 초과하는 경우 보다 큰 새로운 버퍼(large buffer라고 칭하겠다)에 요청 헤더를 저장하게 된다. 이때, 그 크기는 <code class="language-plaintext highlighter-rouge">large_client_header_buffers</code> 값을 통해 지정하게 된다. 여기서는 large buffer의 개수와 크기를 같이 지정해주게 되는데 디폴트 값은 개수 4개, 크기는 8KB이다. 즉, 헤더 크기가 <code class="language-plaintext highlighter-rouge">client_header_buffer_size</code> 를 넘는 요청은 최대 4개까지 동시에 처리가 가능함을 의미한다.</p>
+
+<p><img src="https://raw.githubusercontent.com/dreamsh19/dreamsh19.github.io/master/assets/image/image-20210509172318697.png" alt="image-20210509172318697"></p>
+
+<p>이때 large buffer의 경우에는 항상 떠있는 건 아니고 요청이 있을 때 할당하는 것이라고 한다. 애초에 목적 자체가 일반적으로 사용되는 목적보다는 헤더 크기가 큰 특수한 요청만 처리하는 목적이기 때문인 것으로 생각된다. 그리고 커넥션이 keep-alive 상태가 되면 할당을 해제한다.</p>
+
+<p>그리고 버퍼 개수보다 많은 요청이 들어오는 경우에는 새로운 요청을 큐에 저장하여 나중에 처리하는지 혹은 애초에 요청 자체를 거부하는지는 확인이 필요하다.</p>
+
+<p>결론적으로 저 large buffer의 크기<strong>(<code class="language-plaintext highlighter-rouge">large_client_header_buffers </code>)보다 큰 헤더를 가진 요청이 들어오는 경우에 414 status code를 리턴하게 된다.</strong></p>
+
+<h2 id="client에-따른-헤더-크기-차이">Client에 따른 헤더 크기 차이</h2>
+
+<p>그렇다면 동일 요청이라면 결과가 일관되게 나와야 할 것 같은데 vegeta로 요청 시 200이 나오고 postman으로 요청 시 414가 나오는 이유는 무엇일까?</p>
+
+<p>결론부터 말하자면, <strong>동일 요청이어도 클라이언트에 따라 request header 크기가 달라져서 결과가 달랐던 것</strong>이다. Request header의 경우 url을 제외하고도 기타 정보(User-agent) 등을 추가적으로 포함하는데 이러한 기타 정보는 요청을 구성하는 클라이언트에 따라 달라지게 된다. 그래서 실제로 동일 요청에 대해 클라이언트별로 Request header 크기를 확인해보았다.</p>
+
+<h3 id="1-curl">1. curl</h3>
+
+<p>curl의 경우 vegeta와 마찬가지로 414가 나오지 않고 200이 반환되었다. 그래서 이때의 request header 크기를 확인해보았다. curl의 경우 -w 옵션을 이용하여 아래와 같은 명령어로 request size를 알 수 있다.(실제 반환되는 결과는 request 전체의 크기, 즉 header+body의 크기이지만, get 요청이기 때문에 request body가 존재하지 않아 request 전체의 크기=header의 크기가 된다)</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-o</span> /dev/null <span class="nt">-w</span> <span class="s2">"size_request:%{size_request}"</span> <span class="o">{</span>url<span class="o">}</span>
+</code></pre></div></div>
+
+<p>해당 요청의 결과 사이즈는 <strong>5,575B로, 8K(nginx 디폴트 설정)를 넘지 않아</strong> 200을 리턴하게 된다.</p>
+
+<h3 id="2-postman">2. Postman</h3>
+
+<p>Postman의 경우 414가 반환되었다.</p>
+
+<p><img src="https://raw.githubusercontent.com/dreamsh19/dreamsh19.github.io/master/assets/image/image-20210509190409942.png" alt="image-20210509190409942"></p>
+
+<p>이때 request size는 아래와 같은 size 탭을 통해 확인할 수  있으며, request header 크기가 <strong>9.29KB로 8K를 초과</strong>하여 414를 리턴하게 된다.</p>
+
+<p>추가적으로 url 길이를 줄여가며, 요청을 보냈을 때 크기가 8.18KB일 때까지 200이 반환되다가 8K(8,192B)를 넘어가는 순간 414가 반환되었다.</p>
+
+<h3 id="3-chrome-browser">3. Chrome browser</h3>
+
+<p>크롬 브라우저의 경우 414가 반환되었다.</p>
+
+<p><img src="https://raw.githubusercontent.com/dreamsh19/dreamsh19.github.io/master/assets/image/image-20210509190750887.png" alt="image-20210509190750887"></p>
+
+<p>크롬 브라우저의 request header size를 확인하는 방법은 조금 까다로웠다. 위의 그림에서 처럼 크롬 개발자도구 &gt; Network 탭에서 해당 요청을 선택한후 Copy as cURL을 선택하여 복사한 후 위의 1번 curl의 방법으로 확인했다.</p>
+
+<p>확인 결과 크기가 <strong>9,797B로 8K를 넘어</strong> 414를 리턴하게 된다.</p>
+
+<h2 id="해결-방법">해결 방법</h2>
+
+<p>보통 이처럼 GET 방식의 요청에 쿼리 파라미터로 데이터로 전달하는 과정에서 414 에러가 발생하는 경우에 POST 방식으로 전환하는 것이 정석이라고 한다. 하지만 부득이하게 get 요청을 유지해야하는 경우가 있을 수도 있다. API 스펙을 변경하는 것은 해당 API를 호출하는 다른 모든 서비스들의 변경이 필요하기 때문이다. 따라서 불가피하게 GET 요청 방식을 유지해야하는 경우,  nginx의 <code class="language-plaintext highlighter-rouge">large_client_header_buffers</code> 의 크기를 더 큰 값으로 수정함으로써 문제를 해결할 수 있다. (일반 요청 버퍼 사이즈인 <code class="language-plaintext highlighter-rouge">client_header_buffer_size</code> 를 늘려도 되지만, 일반 요청에 대해서도 지나치게 큰 버퍼를 할당하는 것은 메모리 낭비이다.)  하지만 이러한 해결방식이 갖는 문제점이 있는데</p>
+
+<ol>
+  <li>버퍼의 개수 제한이 있기 때문에 헤더 사이즈가 큰 요청이 빈번하게 들어오는 경우 병목이 발생할 수 있다.</li>
+  <li>최대 길이의 상한을 예측하기 어려운 경우, 즉 해당 버퍼 크기를 넘는 요청이 들어오지 않는다는 보장을 할 수 없는 경우 결국 같은 문제에 봉착하게 된다.</li>
+</ol>
+
+<p>따라서, 헤더 크기가 큰 요청이 빈번하지 않고, 요청 헤더 크기의 상한을 예측가능한 경우에는 유용한 방법으로 생각된다.</p>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li>
+    <p><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/414">https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/414</a></p>
+  </li>
+  <li>
+    <p><a href="http://nginx.org/en/docs/http/ngx_http_core_module.html#large_client_header_buffers">http://nginx.org/en/docs/http/ngx_http_core_module.html#large_client_header_buffers</a></p>
+  </li>
+  <li>
+    <p><a href="https://sub0709.tistory.com/175">https://sub0709.tistory.com/175</a></p>
+  </li>
+  <li>
+    <p><a href="https://serverfault.com/questions/892006/chrome-devtools-request-header-size">https://serverfault.com/questions/892006/chrome-devtools-request-header-size</a></p>
+  </li>
+</ul>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/tags/#414" class="page__taxonomy-item" rel="tag">414</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#http-status-code" class="page__taxonomy-item" rel="tag">http status code</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#nginx" class="page__taxonomy-item" rel="tag">Nginx</a>
+    
+    </span>
+  </p>
+
+
+
+
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-folder-open" aria-hidden="true"></i> Categories: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/categories/#nginx" class="page__taxonomy-item" rel="tag">Nginx</a>
+    
+    </span>
+  </p>
+
+
+        
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time datetime="2021-05-01T00:00:00+09:00">May 1, 2021</time></p>
+
+
+      </footer>
+
+      <section class="page__share">
+  
+    <h4 class="page__share-title">Share on</h4>
+  
+
+  <a href="https://twitter.com/intent/tweet?text=Nginx+414+Request+Uri+Too+Large%20https%3A%2F%2Fdreamsh19.github.io%2Fnginx%2FNginx-414-Request-URI-Too-Large%2F" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fdreamsh19.github.io%2Fnginx%2FNginx-414-Request-URI-Too-Large%2F" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fdreamsh19.github.io%2Fnginx%2FNginx-414-Request-URI-Too-Large%2F" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
+
+      
+  <nav class="pagination">
+    
+      <a href="/error/%EC%95%A0%ED%94%8C%EB%A6%AC%EC%BC%80%EC%9D%B4%EC%85%98-%EC%97%90%EB%9F%AC-%EC%BD%94%EB%93%9C-%EC%84%A4%EA%B3%84/" class="pagination--pager" title="애플리케이션 에러 코드 설계
+">Previous</a>
+    
+    
+      <a href="/ssh/SSH-key%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%9C-SSH-%EC%9D%B8%EC%A6%9D-%EC%9E%90%EB%8F%99%ED%99%94/" class="pagination--pager" title="SSH key를 이용한 SSH 인증 자동화
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+      <div class="page__comments">
+  
+  
+      <h4 class="page__comments-title">Leave a comment</h4>
+      <section id="disqus_thread"></section>
+    
+</div>
+
+    
+  </article>
+
+  
+  
+</div>
+
+    </div>
+
+    
+      <div class="search-content">
+        <div class="search-content__inner-wrap">
+<form class="search-content__form" onkeydown="return event.key != 'Enter';">
+    <label class="sr-only" for="search">
+      Enter your search term...
+    </label>
+    <input type="search" id="search" class="search-input" tabindex="-1" placeholder="Enter your search term...">
+  </form>
+  <div id="results" class="results"></div>
+</div>
+
+      </div>
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+      <li><strong>Follow:</strong></li>
+    
+
+    
+      
+        
+      
+        
+      
+        
+          <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i> LinkedIn</a></li>
+        
+      
+    
+
+    <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+  </ul>
+</div>
+
+<div class="page__footer-copyright">© 2025 서버 개발자. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+<script src="/assets/js/lunr/lunr.min.js"></script>
+<script src="/assets/js/lunr/lunr-store.js"></script>
+<script src="/assets/js/lunr/lunr-en.js"></script>
+
+
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LM91QEFQ4D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-LM91QEFQ4D', { 'anonymize_ip': false});
+</script>
+
+
+
+
+
+
+    
+  <script>
+    var disqus_config = function () {
+      this.page.url = "https://dreamsh19.github.io/nginx/Nginx-414-Request-URI-Too-Large/";  /* Replace PAGE_URL with your page's canonical URL variable */
+      this.page.identifier = "/nginx/Nginx-414-Request-URI-Too-Large"; /* Replace PAGE_IDENTIFIER with your page's unique identifier variable */
+    };
+    (function() { /* DON'T EDIT BELOW THIS LINE */
+      var d = document, s = d.createElement('script');
+      s.src = 'https://dreamsh19-github-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', +new Date());
+      (d.head || d.body).appendChild(s);
+    })();
+  </script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript>
+
+
+  
+
+
+
+
+
+  </body>
+</html>

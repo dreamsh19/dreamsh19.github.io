@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.21.0 by Michael Rose
+  Copyright 2013-2020 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+--><html lang="en" class="no-js">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>비동기 논블락킹에 대한 이해 - 기술을 기술하다</title>
+<meta name="description" content="이슈">
+
+
+  <meta name="author" content="ㅎㅅㅎ">
+  
+  <meta property="article:author" content="ㅎㅅㅎ">
+  
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="기술을 기술하다">
+<meta property="og:title" content="비동기 논블락킹에 대한 이해">
+<meta property="og:url" content="https://dreamsh19.github.io/async/%EB%B9%84%EB%8F%99%EA%B8%B0-%EB%85%BC%EB%B8%94%EB%9D%BD%ED%82%B9%EC%97%90-%EB%8C%80%ED%95%9C-%EC%9D%B4%ED%95%B4/">
+
+
+  <meta property="og:description" content="이슈">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2024-11-08T00:00:00+09:00">
+
+
+
+
+
+  
+
+  
+
+
+<link rel="canonical" href="https://dreamsh19.github.io/async/%EB%B9%84%EB%8F%99%EA%B8%B0-%EB%85%BC%EB%B8%94%EB%9D%BD%ED%82%B9%EC%97%90-%EB%8C%80%ED%95%9C-%EC%9D%B4%ED%95%B4/">
+
+
+
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    
+      "@type": "Person",
+      "name": "서버 개발자",
+      "url": "https://dreamsh19.github.io/"
+    
+  }
+</script>
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+<link href="/feed.xml" type="application/atom+xml" rel="alternate" title="기술을 기술하다 Feed">
+
+<!-- https://t.co/dKP3o1e -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script>
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<!--[if IE]>
+  <style>
+    /* old IE unsupported flexbox fixes */
+    .greedy-nav .site-title {
+      padding-right: 3em;
+    }
+    .greedy-nav button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+    }
+  </style>
+<![endif]-->
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single">
+    <nav class="skip-links">
+  <h2 class="screen-reader-text">Skip links</h2>
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    <!--[if lt IE 9]>
+<div class="notice--danger align-center" style="margin: 0;">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience.</div>
+<![endif]-->
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          기술을 기술하다
+          
+        </a>
+        <ul class="visible-links">
+<li class="masthead__menu-item">
+              <a href="/">Home</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/categories/">Categories</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/tags/">Tags</a>
+            </li>
+</ul>
+        
+        <button class="search__toggle" type="button">
+          <span class="visually-hidden">Toggle search</span>
+          <svg class="icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 15.99 16">
+            <path d="M15.5,13.12L13.19,10.8a1.69,1.69,0,0,0-1.28-.55l-0.06-.06A6.5,6.5,0,0,0,5.77,0,6.5,6.5,0,0,0,2.46,11.59a6.47,6.47,0,0,0,7.74.26l0.05,0.05a1.65,1.65,0,0,0,.5,1.24l2.38,2.38A1.68,1.68,0,0,0,15.5,13.12ZM6.4,2A4.41,4.41,0,1,1,2,6.4,4.43,4.43,0,0,1,6.4,2Z" transform="translate(-.01)"></path>
+          </svg>
+        </button>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+
+
+<div itemscope itemtype="https://schema.org/Person">
+
+  
+
+  <div class="author__content">
+    
+      <h3 class="author__name" itemprop="name">ㅎㅅㅎ</h3>
+    
+    
+      <div class="author__bio" itemprop="description">
+        <p>Backend Dev</p>
+
+      </div>
+    
+  </div>
+
+  <div class="author__urls-wrapper">
+    <button class="btn btn--inverse">Follow</button>
+    <ul class="author__urls social-icons">
+      
+        <li itemprop="homeLocation" itemscope itemtype="https://schema.org/Place">
+          <i class="fas fa-fw fa-map-marker-alt" aria-hidden="true"></i> <span itemprop="name">South Korea</span>
+        </li>
+      
+
+      
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+            <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i><span class="label">GitHub</span></a></li>
+          
+        
+          
+            <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span class="label">LinkedIn</span></a></li>
+          
+        
+          
+        
+      
+
+      
+
+      
+        <li>
+          <a href="mailto:dreamsh19@gmail.com">
+            <meta itemprop="email" content="dreamsh19@gmail.com">
+            <i class="fas fa-fw fa-envelope-square" aria-hidden="true"></i><span class="label">Email</span>
+          </a>
+        </li>
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      <!--
+  <li>
+    <a href="http://link-to-whatever-social-network.com/user/" itemprop="sameAs" rel="nofollow noopener noreferrer">
+      <i class="fas fa-fw" aria-hidden="true"></i> Custom Social Profile Link
+    </a>
+  </li>
+-->
+    </ul>
+  </div>
+</div>
+
+  
+  <a href="https://hits.seeyoufarm.com" style="display: none;">
+    <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fdreamsh19.github.io&count_bg=%2348AFB3&title_bg=%237D8B8E&icon=&icon_color=%23360E0E&title=hits&edge_flat=false">
+  </a>  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="비동기 논블락킹에 대한 이해">
+    <meta itemprop="description" content="이슈">
+    <meta itemprop="datePublished" content="2024-11-08T00:00:00+09:00">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">비동기 논블락킹에 대한 이해
+</h1>
+          
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right sticky">
+            <nav class="toc">
+              <header><h4 class="nav__title">
+<i class="fas fa-file-alt"></i> On this page</h4></header>
+              <ul class="toc__menu">
+<li><a href="#%EC%9D%B4%EC%8A%88">이슈</a></li>
+<li><a href="#%EB%93%A4%EC%96%B4%EA%B0%80%EB%A9%B0">들어가며</a></li>
+<li><a href="#%EA%B2%B0%EB%A1%A0">결론</a></li>
+<li><a href="#%EC%A0%84%EC%A0%9C">전제</a></li>
+<li><a href="#%EB%B9%84%EC%9C%A0%EB%A5%BC-%ED%86%B5%ED%95%B4-%EC%9D%B4%ED%95%B4%ED%95%B4%EB%B3%B4%EC%9E%90">비유를 통해 이해해보자.</a></li>
+<li><a href="#%EB%8F%99%EA%B8%B0-vs-%EB%B9%84%EB%8F%99%EA%B8%B0">동기 vs 비동기</a></li>
+<li><a href="#%EB%B8%94%EB%9D%BD%ED%82%B9-vs-%EB%85%BC%EB%B8%94%EB%9D%BD%ED%82%B9">블락킹 vs 논블락킹</a></li>
+<li>
+<a href="#%EB%84%A4-%EA%B0%80%EC%A7%80-%EC%A1%B0%ED%95%A9%EC%97%90-%EB%8C%80%ED%95%B4-%EC%82%B4%ED%8E%B4%EB%B3%B4%EC%9E%90">네 가지 조합에 대해 살펴보자</a><ul>
+<li><a href="#%EB%8F%99%EA%B8%B0-%EB%B8%94%EB%9D%BD%ED%82%B9">동기 블락킹</a></li>
+<li><a href="#%EB%8F%99%EA%B8%B0-%EB%85%BC%EB%B8%94%EB%9D%BD%ED%82%B9">동기 논블락킹</a></li>
+<li><a href="#%EB%B9%84%EB%8F%99%EA%B8%B0-%EB%B8%94%EB%9D%BD%ED%82%B9">비동기 블락킹</a></li>
+<li><a href="#%EB%B9%84%EB%8F%99%EA%B8%B0-%EB%85%BC%EB%B8%94%EB%9D%BD%ED%82%B9">비동기 논블락킹</a></li>
+</ul>
+</li>
+<li><a href="#%EC%95%9E%EC%9C%BC%EB%A1%9C-%EB%82%A8%EC%9D%80-%EA%B2%83">앞으로 남은 것</a></li>
+<li><a href="#references">References</a></li>
+</ul>
+
+            </nav>
+          </aside>
+        
+        <h2 id="이슈">이슈</h2>
+
+<ul>
+  <li>코루틴에 대해서 공부하면서 이게 어떻게 JVM에서 동작하지?라는 의문을 가지고 헤맸던 경험이 있다.</li>
+  <li>결국 비동기 논블락킹에 대한 이해가 부족했던 것이고, 이 주제는 주기적으로(?) 헷갈리는 주제인 것 같다.</li>
+  <li>그래서 이번에 나만의 언어로 정리하는게 필요하다고 느껴져서 정리하게 됐다.</li>
+  <li>물론, 관련된 글은 이미 너무나 많지만, 정확하지 않은 정보로 인해 오히려 헷갈리는 경우가 있고, 각자의 언어로 표현하다보니 나에게는 와닿지 않는 경우가 많았다.</li>
+  <li>이 글은 사실 미래에 헷갈릴 나를 위한 글이다.</li>
+</ul>
+
+<h2 id="들어가며">들어가며</h2>
+
+<ul>
+  <li>이 글은 비동기 논블락킹에 대한 이론적 배경이나 구체적인 방법론 등을 설명하기 위한 글은 아니다.</li>
+  <li>비동기 논블락킹에 대한 이해를 쉽게 하는 것이 주 목적인 글이므로, 약간의 논리의 비약이 있을 수 있으나, 최대한 본질을 흐리지 않으며 작성하려고 했다.</li>
+</ul>
+
+<h2 id="결론">결론</h2>
+<ul>
+  <li>동기 vs 비동기는 “내 일을 동료한테 줄 수 있는가”의 관점이고,</li>
+  <li>블락킹 vs 논블락킹 “내가 다른 일을 할 수 있는가”의 관점이다.</li>
+  <li>그리고 중요한 건 결국 논블락킹이 목적이고, 비동기는 이를 위한 수단이다.
+    <ul>
+      <li>결국 자원 효율성 관점에서 내가 쉬지 않고 다른 일을 할 수 있는 게 중요한 거고, 내가 다른 일을 하기 위해서는 내가 하던 일을 동료에게 줄 수 있어야한다.</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="전제">전제</h2>
+
+<ul>
+  <li>비동기든 논블락킹이든 이 논의는 동일한 자원 상황에서의 “스레드의 스케줄링”에 대한 논의이다.
+    <ul>
+      <li>스레드의 스케줄링이라 함은 “누가 무슨 일을 할지”에 대한 논의이며, 그 목적은 당연하게도 누가 무슨 일을 해야 가장 효율적일까?에 있다.</li>
+      <li>그리고 여기서의 스레드는 “작업을 수행하는 주체”를 의미하고, 경우에 따라 OS 레벨의 프로세스 혹은 스레드가 될 수 있고, 언어 레벨에서는 고루틴, 코루틴과 같은 경량스레드가 될 수 있다.</li>
+    </ul>
+  </li>
+  <li>그리고 이 논의를 위해서는 I/O time이 있는 작업이라는 전제가 필요하다.
+    <ul>
+      <li>애초에 cpu만 사용하는 작업만 있는 경우 코어 수나 클락 수를 늘리지 않는 이상 스레드의 스케줄링만으로는 개선할 여지가 없고, (스케줄링을 통해서 해결할 수 있는 건 starvation 등의 자원의 분배 문제이지, 효율은 개선될 수 없다)</li>
+      <li>결국 비동기든 논블락킹이든 I/O time 때 스레드가 유휴상태인 채로 점유된 것을 개선하기 위한 것들이기 때문이다.</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="비유를-통해-이해해보자">비유를 통해 이해해보자.</h2>
+
+<p>손님에게 주문을 받고 주문받은 음료를 주는 카페 알바를 떠올려보자. Server의 어원 그 자체라고 할 수 있다.<br>
+그리고 I/O 작업은 커피머신에 커피를 내리는 작업에 비유할 수 있다. (커피머신이 커피를 내리는 시간은 알바가 아무리 뭘해도 컨트롤할 수 있는 영역이 아니다.)<br>
+굳이 따지자면 cpu 작업은 커피머신을 사용하지 않는 모든 작업(계산을 한다던가, 얼음을 넣는다던가 등)에 비유할 수 있다.</p>
+
+<p>이러한 관점에서 아래 상황들을 떠올려보자.</p>
+
+<h2 id="동기-vs-비동기">동기 vs 비동기</h2>
+
+<ul>
+  <li>동기는 내 일을 동료한테 줄 수 없는 형태의 스케줄링이다.</li>
+  <li>비동기는 내 일을 동료한테 줄 수 있는 형태의 스케줄링이다.</li>
+</ul>
+
+<p>그럼 여기서 동기의 관점을 우선 살펴보자.<br>
+동기는 일을 동료한테 줄 수 없다. 이 말은 곧, 동료가 없다는 것과 같다고 볼 수 있고, 동료가 없다는 건 곧 혼자 일한다고 볼 수 있다.<br>
+즉, 싱글 스레드라고 취급할 수 있다.<br>
+여기서 싱글스레드라고 하면 수많은 동기 방식의 멀티스레드 프레임워크들은 무엇인가?에 대한 의문을 가질 수 있다.<br>
+그런데 동기 방식의 멀티스레드는 스레드가 여러개이긴 하나 스레드 간에 협력이랄게 없고, 각각의 스레드가 “독립적으로” n개의 작업을 할 뿐이다.<br>
+결국 멀티스레드라고 해도 각자 할 일을 하는 싱글스레드 * n개 밖에 되지 않는다.</p>
+
+<p>이어서 비동기 관점을 살펴보자.<br>
+비동기 방식은 내 일을 동료한테 줄 수 있다는 것인데, 이것은 다시 말하면 일단 동료가 있어야한다는 것을 의미한다.<br>
+즉, 멀티스레드가 전제가 되어야한다.<br>
+(정확히는 비동기 방식이 반드시 멀티스레드일 필요는 없다. 예를 들어, 비동기 방식의 코드를 싱글 스레드로 실행하면 실행은 된다. 다만 이 상황은 내 일을 동료한테 줬는데 그 동료가 나인 경우이다. 즉, 결과적으로 따지고보면 어차피 내가 다하고 있는 거고, 그렇다면 굳이 비동기 방식이 갖는 이점이 없는 것이다. 이 말은 곧 비동기 방식이 “의미가 있으려면” 멀티스레드가 전제되어야 한다는 것을 뜻한다.)</p>
+
+<p>멀티스레드를 전제로 하고 마저 살펴보면,<br>
+내 일을 동료한테 줄 수 있다는 것은 결국 스레드간 “협력”이 가능하다는 것을 의미한다. coroutine의 “co”가 cooperative인 것도 이와 같은 맥락이다.<br>
+비동기 방식에서 늘 나오는 얘기인 콜백도 결국 “협력”하는 한 방법 중에 하나일 뿐이다.</p>
+
+<p>카페 알바의 예로 보면, 동기 방식은 내가 주문받은 손님은 내가 반드시 음료를 줘야하는 방식이다.<br>
+반면에, 비동기 방식은 주문은 내가 받았지만 음료를 주는 건 동료일 수 있다.</p>
+
+<h2 id="블락킹-vs-논블락킹">블락킹 vs 논블락킹</h2>
+
+<ul>
+  <li>블락킹은 내가 다른 일을 할 수 없는 관점이다.</li>
+  <li>논블락킹은 내가 다른 일을 할 수 있는 관점이다.</li>
+</ul>
+
+<p>카페 알바의 예로 보면, 블락킹 방식은 커피머신이 커피를 내리는 동안 아무 일도 하지 못하는 방식이다. (커피머신을 멀뚱멀뚱 쳐다본다던가, 커피 잔을 손으로 계속 들고 있어야된다고 생각해도 될 것 같다.)<br>
+반면에, 논블락킹 방식은 커피머신에 커피를 내리고 나서 주문을 받을 수 있는 방식이다.</p>
+
+<p>블락킹 방식은 답답하기는 하지만, 커피머신이 커피를 다 내렸을 때 어떻게하지?에 대한 걱정은 없다.<br>
+다만, 논블락킹 방식은 누가봐도 효율적이다. 그런데 커피머신이 커피를 다 내리고 나면 이 커피는 어떻게 하지?에 대한 걱정을 하게 된다.<br>
+여기서 비동기와의 연결점이 발생한다.<br>
+동기 방식은 이 일을 동료한테 줄 수 없기 때문에, 커피를 다 내리고 나면 커피를 손님한테 건네주는 것도 내가 해야한다.<br>
+즉, 커피머신의 작업에 대한 완료처리를 계속 신경을 써야한다는 것이고, 결국 스레드가 이걸로부터 자유로울 수 없다.<br>
+그런데, 비동기 방식은 이 일을 동료한테 줄 수 있고, 커피가 다 내려지면 손님에게 건내줘라는 걸 동료한테 전달할 수 있게 되고 그러면 나는 이 일로부터 자유로워질 수 있다.</p>
+
+<h2 id="네-가지-조합에-대해-살펴보자">네 가지 조합에 대해 살펴보자</h2>
+
+<p>위의 관점에서 동기와 비동기 그리고 블락킹과 논블락킹이 어떤 관점인지 살펴보았으니, 2x2 조합 각각에 대해 구체적으로 떠올려보자.</p>
+
+<h3 id="동기-블락킹">동기 블락킹</h3>
+
+<p>가장 기초적인 모델이다.<br>
+내 일을 동료한테 줄 수도 없고, 다른 일을 할 수도 없다.<br>
+결국 싱글 스레드의 sequential한 모델을 떠올릴 수 있다.</p>
+
+<p>예상하겠지만, 싱글 스레드의 문제와 순차 수행의 문제를 갖고 있다.</p>
+
+<h3 id="동기-논블락킹">동기 논블락킹</h3>
+
+<p>내 일을 동료한테 줄 수 없으나, 다른 일을 할 수 있다.<br>
+커피 머신에 커피를 내리게 한 다음에 주문을 받을 수 있다.<br>
+커피를 내리는 동안 손님을 받을 수 있으니까, 동기 블락킹을 방식보다 효율적이다.</p>
+
+<p>그럼 뭐가 문제일까?<br>
+싱글 스레드의 문제를 가져간다. 즉, 점유되는 경우 다른 작업들이 같이 지연된다는 단점이 있다.<br>
+예를 들어, 위의 상황에서 주문을 받는데 주문받는게 오래걸린다면(스레드를 점유한다면) 커피 머신이 커피를 다 내렸어도 이전 손님에게 커피를 주지 못한다.</p>
+
+<h3 id="비동기-블락킹">비동기 블락킹</h3>
+
+<p>내 일을 동료한테 줄 수 있으나, 다른 일을 할 수 없다.<br>
+보자마자 이런 생각이 든다. “다른 일을 할 수 없는데 동료한테 왜 줘?”<br>
+그리고 이 생각은 실제로 비동기 블락킹 방식이 자연스럽지 않고, 잘 사용되지 않는 이유를 관통하는 관점이다.<br>
+Java의 CompletableFuture의 get() 함수를 호출하면 비동기지만 스레드가 블락되는 방식으로 동작한다.</p>
+
+<h3 id="비동기-논블락킹">비동기 논블락킹</h3>
+
+<p>내 일을 동료한테 줄 수 있고, 다른 일도 할 수 있다.<br>
+동기 논블락킹에서의 싱글 스레드 문제를 해결할 수 있다.<br>
+예를 들어, 스레드가 점유당한다면, 동료가 대신 커피를 줄 수 있다.<br>
+그리고 내 일을 동료에게 준 순간 나와 일, 즉 스레드와 자유의 몸이 됐으므로, 새로운 주문을 받던 이미 다른 동료가 받은 주문에 대한 커피를 손님에게 내어주던, 어떤 작업이든 시작할 수 있다.</p>
+
+<h2 id="앞으로-남은-것">앞으로 남은 것</h2>
+
+<p>위에서 개념적으로 이해한 것들을 코딩으로 실제로 구현해보고 확인하면 좀 더 확실하게 정리될 것 같다.<br>
+코드 기준으로 설명한 것들로 2편을 작성하는 것을 목표로 해야겠다.</p>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li><a href="https://www.quora.com/Why-is-threading-useful-on-a-single-core-processor">Why is threading useful on a single core processor? - Quora</a></li>
+  <li><a href="https://engineering.linecorp.com/ko/blog/do-not-block-the-event-loop-part2">비동기 서버에서 이벤트 루프를 블록하면 안 되는 이유 2부 - Java NIO와 멀티플렉싱 기반의 다중 접속 서버</a></li>
+</ul>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+
+
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-folder-open" aria-hidden="true"></i> Categories: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/categories/#async" class="page__taxonomy-item" rel="tag">Async</a>
+    
+    </span>
+  </p>
+
+
+        
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time datetime="2024-11-08T00:00:00+09:00">November 8, 2024</time></p>
+
+
+      </footer>
+
+      <section class="page__share">
+  
+    <h4 class="page__share-title">Share on</h4>
+  
+
+  <a href="https://twitter.com/intent/tweet?text=%EB%B9%84%EB%8F%99%EA%B8%B0+%EB%85%BC%EB%B8%94%EB%9D%BD%ED%82%B9%EC%97%90+%EB%8C%80%ED%95%9C+%EC%9D%B4%ED%95%B4%20https%3A%2F%2Fdreamsh19.github.io%2Fasync%2F%25EB%25B9%2584%25EB%258F%2599%25EA%25B8%25B0-%25EB%2585%25BC%25EB%25B8%2594%25EB%259D%25BD%25ED%2582%25B9%25EC%2597%2590-%25EB%258C%2580%25ED%2595%259C-%25EC%259D%25B4%25ED%2595%25B4%2F" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fdreamsh19.github.io%2Fasync%2F%25EB%25B9%2584%25EB%258F%2599%25EA%25B8%25B0-%25EB%2585%25BC%25EB%25B8%2594%25EB%259D%25BD%25ED%2582%25B9%25EC%2597%2590-%25EB%258C%2580%25ED%2595%259C-%25EC%259D%25B4%25ED%2595%25B4%2F" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fdreamsh19.github.io%2Fasync%2F%25EB%25B9%2584%25EB%258F%2599%25EA%25B8%25B0-%25EB%2585%25BC%25EB%25B8%2594%25EB%259D%25BD%25ED%2582%25B9%25EC%2597%2590-%25EB%258C%2580%25ED%2595%259C-%25EC%259D%25B4%25ED%2595%25B4%2F" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
+
+      
+  <nav class="pagination">
+    
+      <a href="/git/Git-commit-hash%EB%8A%94-%EC%96%B4%EB%96%BB%EA%B2%8C-%EB%A7%8C%EB%93%A4%EC%96%B4%EC%A7%88%EA%B9%8C/" class="pagination--pager" title="Git commit hash는 어떻게 만들어질까
+">Previous</a>
+    
+    
+      <a href="/jersey/Jersey-Singleton-%EA%B0%9D%EC%B2%B4%EC%9D%98-%EC%B4%88%EA%B8%B0%ED%99%94-%EC%8B%9C%EC%A0%90/" class="pagination--pager" title="Jersey Singleton 객체의 초기화 시점
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+      <div class="page__comments">
+  
+  
+      <h4 class="page__comments-title">Leave a comment</h4>
+      <section id="disqus_thread"></section>
+    
+</div>
+
+    
+  </article>
+
+  
+  
+</div>
+
+    </div>
+
+    
+      <div class="search-content">
+        <div class="search-content__inner-wrap">
+<form class="search-content__form" onkeydown="return event.key != 'Enter';">
+    <label class="sr-only" for="search">
+      Enter your search term...
+    </label>
+    <input type="search" id="search" class="search-input" tabindex="-1" placeholder="Enter your search term...">
+  </form>
+  <div id="results" class="results"></div>
+</div>
+
+      </div>
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+      <li><strong>Follow:</strong></li>
+    
+
+    
+      
+        
+      
+        
+      
+        
+          <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i> LinkedIn</a></li>
+        
+      
+    
+
+    <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+  </ul>
+</div>
+
+<div class="page__footer-copyright">© 2025 서버 개발자. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+<script src="/assets/js/lunr/lunr.min.js"></script>
+<script src="/assets/js/lunr/lunr-store.js"></script>
+<script src="/assets/js/lunr/lunr-en.js"></script>
+
+
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LM91QEFQ4D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-LM91QEFQ4D', { 'anonymize_ip': false});
+</script>
+
+
+
+
+
+
+    
+  <script>
+    var disqus_config = function () {
+      this.page.url = "https://dreamsh19.github.io/async/%EB%B9%84%EB%8F%99%EA%B8%B0-%EB%85%BC%EB%B8%94%EB%9D%BD%ED%82%B9%EC%97%90-%EB%8C%80%ED%95%9C-%EC%9D%B4%ED%95%B4/";  /* Replace PAGE_URL with your page's canonical URL variable */
+      this.page.identifier = "/async/비동기-논블락킹에-대한-이해"; /* Replace PAGE_IDENTIFIER with your page's unique identifier variable */
+    };
+    (function() { /* DON'T EDIT BELOW THIS LINE */
+      var d = document, s = d.createElement('script');
+      s.src = 'https://dreamsh19-github-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', +new Date());
+      (d.head || d.body).appendChild(s);
+    })();
+  </script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript>
+
+
+  
+
+
+
+
+
+  </body>
+</html>

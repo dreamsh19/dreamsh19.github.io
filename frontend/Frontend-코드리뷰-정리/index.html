@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.21.0 by Michael Rose
+  Copyright 2013-2020 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+--><html lang="en" class="no-js">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>Frontend 코드리뷰 정리 - 기술을 기술하다</title>
+<meta name="description" content="지난 금요일에 NHN FE개발랩 박정환 전임님의 루키사자TF 프론트엔드 코드리뷰가 있었다. 이번 베이스캠프에서는 모두 바닐라 JS로 프론트엔드를 구현했고, 그렇기 때문에 대부분 비슷한 실수를 했을 것이라 예상되어 해당 코드리뷰를 모든 TF가 참관하는 식으로 진행을 했다.">
+
+
+  <meta name="author" content="ㅎㅅㅎ">
+  
+  <meta property="article:author" content="ㅎㅅㅎ">
+  
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="기술을 기술하다">
+<meta property="og:title" content="Frontend 코드리뷰 정리">
+<meta property="og:url" content="https://dreamsh19.github.io/frontend/Frontend-%EC%BD%94%EB%93%9C%EB%A6%AC%EB%B7%B0-%EC%A0%95%EB%A6%AC/">
+
+
+  <meta property="og:description" content="지난 금요일에 NHN FE개발랩 박정환 전임님의 루키사자TF 프론트엔드 코드리뷰가 있었다. 이번 베이스캠프에서는 모두 바닐라 JS로 프론트엔드를 구현했고, 그렇기 때문에 대부분 비슷한 실수를 했을 것이라 예상되어 해당 코드리뷰를 모든 TF가 참관하는 식으로 진행을 했다.">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2021-03-08T00:00:00+09:00">
+
+
+
+
+
+  
+
+  
+
+
+<link rel="canonical" href="https://dreamsh19.github.io/frontend/Frontend-%EC%BD%94%EB%93%9C%EB%A6%AC%EB%B7%B0-%EC%A0%95%EB%A6%AC/">
+
+
+
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    
+      "@type": "Person",
+      "name": "서버 개발자",
+      "url": "https://dreamsh19.github.io/"
+    
+  }
+</script>
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+<link href="/feed.xml" type="application/atom+xml" rel="alternate" title="기술을 기술하다 Feed">
+
+<!-- https://t.co/dKP3o1e -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script>
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<!--[if IE]>
+  <style>
+    /* old IE unsupported flexbox fixes */
+    .greedy-nav .site-title {
+      padding-right: 3em;
+    }
+    .greedy-nav button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+    }
+  </style>
+<![endif]-->
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single">
+    <nav class="skip-links">
+  <h2 class="screen-reader-text">Skip links</h2>
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    <!--[if lt IE 9]>
+<div class="notice--danger align-center" style="margin: 0;">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience.</div>
+<![endif]-->
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          기술을 기술하다
+          
+        </a>
+        <ul class="visible-links">
+<li class="masthead__menu-item">
+              <a href="/">Home</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/categories/">Categories</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/tags/">Tags</a>
+            </li>
+</ul>
+        
+        <button class="search__toggle" type="button">
+          <span class="visually-hidden">Toggle search</span>
+          <svg class="icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 15.99 16">
+            <path d="M15.5,13.12L13.19,10.8a1.69,1.69,0,0,0-1.28-.55l-0.06-.06A6.5,6.5,0,0,0,5.77,0,6.5,6.5,0,0,0,2.46,11.59a6.47,6.47,0,0,0,7.74.26l0.05,0.05a1.65,1.65,0,0,0,.5,1.24l2.38,2.38A1.68,1.68,0,0,0,15.5,13.12ZM6.4,2A4.41,4.41,0,1,1,2,6.4,4.43,4.43,0,0,1,6.4,2Z" transform="translate(-.01)"></path>
+          </svg>
+        </button>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+
+
+<div itemscope itemtype="https://schema.org/Person">
+
+  
+
+  <div class="author__content">
+    
+      <h3 class="author__name" itemprop="name">ㅎㅅㅎ</h3>
+    
+    
+      <div class="author__bio" itemprop="description">
+        <p>Backend Dev</p>
+
+      </div>
+    
+  </div>
+
+  <div class="author__urls-wrapper">
+    <button class="btn btn--inverse">Follow</button>
+    <ul class="author__urls social-icons">
+      
+        <li itemprop="homeLocation" itemscope itemtype="https://schema.org/Place">
+          <i class="fas fa-fw fa-map-marker-alt" aria-hidden="true"></i> <span itemprop="name">South Korea</span>
+        </li>
+      
+
+      
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+            <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i><span class="label">GitHub</span></a></li>
+          
+        
+          
+            <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span class="label">LinkedIn</span></a></li>
+          
+        
+          
+        
+      
+
+      
+
+      
+        <li>
+          <a href="mailto:dreamsh19@gmail.com">
+            <meta itemprop="email" content="dreamsh19@gmail.com">
+            <i class="fas fa-fw fa-envelope-square" aria-hidden="true"></i><span class="label">Email</span>
+          </a>
+        </li>
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      <!--
+  <li>
+    <a href="http://link-to-whatever-social-network.com/user/" itemprop="sameAs" rel="nofollow noopener noreferrer">
+      <i class="fas fa-fw" aria-hidden="true"></i> Custom Social Profile Link
+    </a>
+  </li>
+-->
+    </ul>
+  </div>
+</div>
+
+  
+  <a href="https://hits.seeyoufarm.com" style="display: none;">
+    <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fdreamsh19.github.io&count_bg=%2348AFB3&title_bg=%237D8B8E&icon=&icon_color=%23360E0E&title=hits&edge_flat=false">
+  </a>  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="Frontend 코드리뷰 정리">
+    <meta itemprop="description" content="지난 금요일에 NHN FE개발랩 박정환 전임님의 루키사자TF 프론트엔드 코드리뷰가 있었다. 이번 베이스캠프에서는 모두 바닐라 JS로 프론트엔드를 구현했고, 그렇기 때문에 대부분 비슷한 실수를 했을 것이라 예상되어 해당 코드리뷰를 모든 TF가 참관하는 식으로 진행을 했다.">
+    <meta itemprop="datePublished" content="2021-03-08T00:00:00+09:00">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">Frontend 코드리뷰 정리
+</h1>
+          
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right sticky">
+            <nav class="toc">
+              <header><h4 class="nav__title">
+<i class="fas fa-file-alt"></i> On this page</h4></header>
+              
+
+            </nav>
+          </aside>
+        
+        <p>지난 금요일에 NHN FE개발랩 박정환 전임님의 루키사자TF 프론트엔드 코드리뷰가 있었다. 이번 베이스캠프에서는 모두 바닐라 JS로 프론트엔드를 구현했고, 그렇기 때문에 대부분 비슷한 실수를 했을 것이라 예상되어 해당 코드리뷰를 모든 TF가 참관하는 식으로 진행을 했다.</p>
+
+<p>이 글은 코드리뷰에서 말씀해주신 내용을 요약 및 정리한 글이다.</p>
+
+<ul>
+  <li>실제로 서비스할때는 외부 CDN(폰트나 이미지, 라이브러리 등으로 많이 활용) 안 쓰는게 좋다
+    <ul>
+      <li>외부 CDN 장애 시 우리 서비스에도 영향이 있기 때문에</li>
+      <li>-&gt; 스태틱 리소스로 다운받아서 사용 권장</li>
+    </ul>
+  </li>
+  <li>
+    <p>html은 동작(기능) 없이. 구조(모양, 형태)만 설계</p>
+  </li>
+  <li>
+    <p>기능이나 동작, 로직은 js로</p>
+  </li>
+  <li>
+    <p>css도 중복되는 부분은 새로운 css로 모듈화하자</p>
+  </li>
+  <li>
+    <p><a href="https://www.caniuse.com">https://www.caniuse.com</a> : 해당 기능이 어떤 브라우저에서 지원하는지 확인 가능</p>
+  </li>
+  <li>
+    <p>정적 분석에 걸리는 실수들은 정말 불필요하다. 기계적으로 해결가능하다</p>
+
+    <ul>
+      <li>
+        <p>ES Lint나 prettier 등을 활용하여 자동으로 조정 가능</p>
+      </li>
+      <li>
+        <p>Pre-commit hook으로 등록하는 식으로 활용 가능</p>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>var는 쓰지마라. const, let을 쓰자</p>
+
+    <ul>
+      <li>처음에 싹 다 const로 쓰고 바꿔야하는 값이라면 그때 let으로 바꾸는 방법도 추천</li>
+    </ul>
+  </li>
+  <li>
+    <p>String을 합칠 때 + 보다 template literal(백틱 ``)을 써라</p>
+  </li>
+  <li>
+    <p>for i 대신 무조건 foreach써라.</p>
+
+    <ul>
+      <li>for i는 동적으로 컬렉션이 바뀌는 경우에 버그 발생 가능</li>
+      <li>Foreach에서도 인덱스 접근 가능하다.</li>
+    </ul>
+  </li>
+  <li>
+    <p>DOM에 변경이 생기는 애들은 함수로 만드는게 관리 측면에서 용이(ex. changeText())</p>
+  </li>
+  <li>
+    <p>선언부와 호출하는 부분을 분리하는 것이 좋다.</p>
+
+    <ul>
+      <li>var, function으로 선언된 애들은 호이스팅 발생</li>
+      <li>Const, let은 호이스팅 안함 =&gt; 이걸로 쓰는게 가독성 측면에서 좋다</li>
+    </ul>
+  </li>
+  <li>
+    <p>함수 선언식보다는 함수 표현식을 써라</p>
+  </li>
+  <li>
+    <p>Eventlistener는 add해주고 나면 remove해주는게 memory leak을 방지.</p>
+
+    <ul>
+      <li>vanilla js의 경우 페이지 떠날때 모두 remove해주면 된다.</li>
+      <li>요새는 프레임워크를 써서 상관없긴하다.</li>
+    </ul>
+  </li>
+  <li>
+    <p>Js 실행시 DOM 탐색이 가장 비싼 연산이다.</p>
+
+    <p>=&gt; DOM element 객체는 변수로 저장해놓는게 좋다.(다시 찾지 않도록)</p>
+  </li>
+  <li>
+    <p>작성한 코드의 ECMA 버전 맞추기</p>
+  </li>
+  <li>전역에서 바로 실행하지 말고 IIFE(즉시실행함수) 사용하자.</li>
+</ul>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/tags/#basecamp" class="page__taxonomy-item" rel="tag">Basecamp</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#code-review" class="page__taxonomy-item" rel="tag">Code Review</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#frontend" class="page__taxonomy-item" rel="tag">Frontend</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#vanilla-js" class="page__taxonomy-item" rel="tag">Vanilla JS</a>
+    
+    </span>
+  </p>
+
+
+
+
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-folder-open" aria-hidden="true"></i> Categories: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/categories/#frontend" class="page__taxonomy-item" rel="tag">Frontend</a>
+    
+    </span>
+  </p>
+
+
+        
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time datetime="2021-03-08T00:00:00+09:00">March 8, 2021</time></p>
+
+
+      </footer>
+
+      <section class="page__share">
+  
+    <h4 class="page__share-title">Share on</h4>
+  
+
+  <a href="https://twitter.com/intent/tweet?text=Frontend+%EC%BD%94%EB%93%9C%EB%A6%AC%EB%B7%B0+%EC%A0%95%EB%A6%AC%20https%3A%2F%2Fdreamsh19.github.io%2Ffrontend%2FFrontend-%25EC%25BD%2594%25EB%2593%259C%25EB%25A6%25AC%25EB%25B7%25B0-%25EC%25A0%2595%25EB%25A6%25AC%2F" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fdreamsh19.github.io%2Ffrontend%2FFrontend-%25EC%25BD%2594%25EB%2593%259C%25EB%25A6%25AC%25EB%25B7%25B0-%25EC%25A0%2595%25EB%25A6%25AC%2F" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fdreamsh19.github.io%2Ffrontend%2FFrontend-%25EC%25BD%2594%25EB%2593%259C%25EB%25A6%25AC%25EB%25B7%25B0-%25EC%25A0%2595%25EB%25A6%25AC%2F" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
+
+      
+  <nav class="pagination">
+    
+      <a href="/basecamp/%EB%B2%A0%EC%9D%B4%EC%8A%A4%EC%BA%A0%ED%94%84-Sprint7/" class="pagination--pager" title="베이스캠프 Sprint7
+">Previous</a>
+    
+    
+      <a href="/basecamp/%EB%B2%A0%EC%9D%B4%EC%8A%A4%EC%BA%A0%ED%94%84-Sprint8/" class="pagination--pager" title="베이스캠프 Sprint8
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+      <div class="page__comments">
+  
+  
+      <h4 class="page__comments-title">Leave a comment</h4>
+      <section id="disqus_thread"></section>
+    
+</div>
+
+    
+  </article>
+
+  
+  
+</div>
+
+    </div>
+
+    
+      <div class="search-content">
+        <div class="search-content__inner-wrap">
+<form class="search-content__form" onkeydown="return event.key != 'Enter';">
+    <label class="sr-only" for="search">
+      Enter your search term...
+    </label>
+    <input type="search" id="search" class="search-input" tabindex="-1" placeholder="Enter your search term...">
+  </form>
+  <div id="results" class="results"></div>
+</div>
+
+      </div>
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+      <li><strong>Follow:</strong></li>
+    
+
+    
+      
+        
+      
+        
+      
+        
+          <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i> LinkedIn</a></li>
+        
+      
+    
+
+    <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+  </ul>
+</div>
+
+<div class="page__footer-copyright">© 2025 서버 개발자. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+<script src="/assets/js/lunr/lunr.min.js"></script>
+<script src="/assets/js/lunr/lunr-store.js"></script>
+<script src="/assets/js/lunr/lunr-en.js"></script>
+
+
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LM91QEFQ4D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-LM91QEFQ4D', { 'anonymize_ip': false});
+</script>
+
+
+
+
+
+
+    
+  <script>
+    var disqus_config = function () {
+      this.page.url = "https://dreamsh19.github.io/frontend/Frontend-%EC%BD%94%EB%93%9C%EB%A6%AC%EB%B7%B0-%EC%A0%95%EB%A6%AC/";  /* Replace PAGE_URL with your page's canonical URL variable */
+      this.page.identifier = "/frontend/Frontend-코드리뷰-정리"; /* Replace PAGE_IDENTIFIER with your page's unique identifier variable */
+    };
+    (function() { /* DON'T EDIT BELOW THIS LINE */
+      var d = document, s = d.createElement('script');
+      s.src = 'https://dreamsh19-github-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', +new Date());
+      (d.head || d.body).appendChild(s);
+    })();
+  </script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript>
+
+
+  
+
+
+
+
+
+  </body>
+</html>

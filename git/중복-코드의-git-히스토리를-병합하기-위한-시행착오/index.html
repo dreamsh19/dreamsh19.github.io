@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.21.0 by Michael Rose
+  Copyright 2013-2020 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+--><html lang="en" class="no-js">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>중복 코드의 Git 히스토리를 병합하기 위한 시행착오 - 기술을 기술하다</title>
+<meta name="description" content="이슈    신규 API 코드와 기존 API 코드를 동시에 서비스하던 중, 기존 API를 deprecate시키고, 기존 API 코드를 삭제하려고 하는 상황이었다.   그런데 문제는 신규 코드 최초 작성 당시, 기존 코드를 복붙하여 작성되었고, 수년 간의 git 히스토리는 기존 코드에만 남아있고, 신규 코드의 git 히스토리는 복붙 이후의 시점만 기록되어 있었다.   아래는 기존 코드에는 히스토리가 다 남아있는 반면, 신규 코드에는 복붙 히스토리만 남아있는 모습이다.            (그리고 여기서의 중요한 포인트는 신규 코드는 기존 코드와 90% 이상 일치하는 중복 코드였기 때문에, 신규 코드는 사실상 동일한 코드에서 git 히스토리만 사라진 코드라고 볼 수 있었다.)">
+
+
+  <meta name="author" content="ㅎㅅㅎ">
+  
+  <meta property="article:author" content="ㅎㅅㅎ">
+  
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="기술을 기술하다">
+<meta property="og:title" content="중복 코드의 Git 히스토리를 병합하기 위한 시행착오">
+<meta property="og:url" content="https://dreamsh19.github.io/git/%EC%A4%91%EB%B3%B5-%EC%BD%94%EB%93%9C%EC%9D%98-git-%ED%9E%88%EC%8A%A4%ED%86%A0%EB%A6%AC%EB%A5%BC-%EB%B3%91%ED%95%A9%ED%95%98%EA%B8%B0-%EC%9C%84%ED%95%9C-%EC%8B%9C%ED%96%89%EC%B0%A9%EC%98%A4/">
+
+
+  <meta property="og:description" content="이슈    신규 API 코드와 기존 API 코드를 동시에 서비스하던 중, 기존 API를 deprecate시키고, 기존 API 코드를 삭제하려고 하는 상황이었다.   그런데 문제는 신규 코드 최초 작성 당시, 기존 코드를 복붙하여 작성되었고, 수년 간의 git 히스토리는 기존 코드에만 남아있고, 신규 코드의 git 히스토리는 복붙 이후의 시점만 기록되어 있었다.   아래는 기존 코드에는 히스토리가 다 남아있는 반면, 신규 코드에는 복붙 히스토리만 남아있는 모습이다.            (그리고 여기서의 중요한 포인트는 신규 코드는 기존 코드와 90% 이상 일치하는 중복 코드였기 때문에, 신규 코드는 사실상 동일한 코드에서 git 히스토리만 사라진 코드라고 볼 수 있었다.)">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2025-01-18T00:00:00+09:00">
+
+
+
+
+
+  
+
+  
+
+
+<link rel="canonical" href="https://dreamsh19.github.io/git/%EC%A4%91%EB%B3%B5-%EC%BD%94%EB%93%9C%EC%9D%98-git-%ED%9E%88%EC%8A%A4%ED%86%A0%EB%A6%AC%EB%A5%BC-%EB%B3%91%ED%95%A9%ED%95%98%EA%B8%B0-%EC%9C%84%ED%95%9C-%EC%8B%9C%ED%96%89%EC%B0%A9%EC%98%A4/">
+
+
+
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    
+      "@type": "Person",
+      "name": "서버 개발자",
+      "url": "https://dreamsh19.github.io/"
+    
+  }
+</script>
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+<link href="/feed.xml" type="application/atom+xml" rel="alternate" title="기술을 기술하다 Feed">
+
+<!-- https://t.co/dKP3o1e -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script>
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<!--[if IE]>
+  <style>
+    /* old IE unsupported flexbox fixes */
+    .greedy-nav .site-title {
+      padding-right: 3em;
+    }
+    .greedy-nav button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+    }
+  </style>
+<![endif]-->
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single">
+    <nav class="skip-links">
+  <h2 class="screen-reader-text">Skip links</h2>
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    <!--[if lt IE 9]>
+<div class="notice--danger align-center" style="margin: 0;">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience.</div>
+<![endif]-->
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          기술을 기술하다
+          
+        </a>
+        <ul class="visible-links">
+<li class="masthead__menu-item">
+              <a href="/">Home</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/categories/">Categories</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/tags/">Tags</a>
+            </li>
+</ul>
+        
+        <button class="search__toggle" type="button">
+          <span class="visually-hidden">Toggle search</span>
+          <svg class="icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 15.99 16">
+            <path d="M15.5,13.12L13.19,10.8a1.69,1.69,0,0,0-1.28-.55l-0.06-.06A6.5,6.5,0,0,0,5.77,0,6.5,6.5,0,0,0,2.46,11.59a6.47,6.47,0,0,0,7.74.26l0.05,0.05a1.65,1.65,0,0,0,.5,1.24l2.38,2.38A1.68,1.68,0,0,0,15.5,13.12ZM6.4,2A4.41,4.41,0,1,1,2,6.4,4.43,4.43,0,0,1,6.4,2Z" transform="translate(-.01)"></path>
+          </svg>
+        </button>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+
+
+<div itemscope itemtype="https://schema.org/Person">
+
+  
+
+  <div class="author__content">
+    
+      <h3 class="author__name" itemprop="name">ㅎㅅㅎ</h3>
+    
+    
+      <div class="author__bio" itemprop="description">
+        <p>Backend Dev</p>
+
+      </div>
+    
+  </div>
+
+  <div class="author__urls-wrapper">
+    <button class="btn btn--inverse">Follow</button>
+    <ul class="author__urls social-icons">
+      
+        <li itemprop="homeLocation" itemscope itemtype="https://schema.org/Place">
+          <i class="fas fa-fw fa-map-marker-alt" aria-hidden="true"></i> <span itemprop="name">South Korea</span>
+        </li>
+      
+
+      
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+            <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i><span class="label">GitHub</span></a></li>
+          
+        
+          
+            <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span class="label">LinkedIn</span></a></li>
+          
+        
+          
+        
+      
+
+      
+
+      
+        <li>
+          <a href="mailto:dreamsh19@gmail.com">
+            <meta itemprop="email" content="dreamsh19@gmail.com">
+            <i class="fas fa-fw fa-envelope-square" aria-hidden="true"></i><span class="label">Email</span>
+          </a>
+        </li>
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      <!--
+  <li>
+    <a href="http://link-to-whatever-social-network.com/user/" itemprop="sameAs" rel="nofollow noopener noreferrer">
+      <i class="fas fa-fw" aria-hidden="true"></i> Custom Social Profile Link
+    </a>
+  </li>
+-->
+    </ul>
+  </div>
+</div>
+
+  
+  <a href="https://hits.seeyoufarm.com" style="display: none;">
+    <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fdreamsh19.github.io&count_bg=%2348AFB3&title_bg=%237D8B8E&icon=&icon_color=%23360E0E&title=hits&edge_flat=false">
+  </a>  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="중복 코드의 Git 히스토리를 병합하기 위한 시행착오">
+    <meta itemprop="description" content="이슈  신규 API 코드와 기존 API 코드를 동시에 서비스하던 중, 기존 API를 deprecate시키고, 기존 API 코드를 삭제하려고 하는 상황이었다.  그런데 문제는 신규 코드 최초 작성 당시, 기존 코드를 복붙하여 작성되었고, 수년 간의 git 히스토리는 기존 코드에만 남아있고, 신규 코드의 git 히스토리는 복붙 이후의 시점만 기록되어 있었다.  아래는 기존 코드에는 히스토리가 다 남아있는 반면, 신규 코드에는 복붙 히스토리만 남아있는 모습이다.          (그리고 여기서의 중요한 포인트는 신규 코드는 기존 코드와 90% 이상 일치하는 중복 코드였기 때문에, 신규 코드는 사실상 동일한 코드에서 git 히스토리만 사라진 코드라고 볼 수 있었다.)      ">
+    <meta itemprop="datePublished" content="2025-01-18T00:00:00+09:00">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">중복 코드의 Git 히스토리를 병합하기 위한 시행착오
+</h1>
+          
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right sticky">
+            <nav class="toc">
+              <header><h4 class="nav__title">
+<i class="fas fa-file-alt"></i> On this page</h4></header>
+              <ul class="toc__menu">
+<li><a href="#%EC%9D%B4%EC%8A%88">이슈</a></li>
+<li><a href="#%EB%AA%A9%ED%91%9C">목표</a></li>
+<li>
+<a href="#1-git-blame-%EB%B3%91%ED%95%A9">1. Git blame 병합</a><ul>
+<li><a href="#%EA%B2%B0%EA%B3%BC%EB%AC%BC">결과물</a></li>
+<li><a href="#%EC%B6%94%EA%B0%80%EC%A0%81%EC%9D%B8-%EC%A3%BC%EC%9D%98%EC%82%AC%ED%95%AD">추가적인 주의사항</a></li>
+</ul>
+</li>
+<li>
+<a href="#2-github%EC%9D%98-%ED%8C%8C%EC%9D%BC-%ED%9E%88%EC%8A%A4%ED%86%A0%EB%A6%AC-%ED%86%B5%ED%95%A9">2. Github의 파일 히스토리 통합</a><ul>
+<li><a href="#git%EC%9D%98-%ED%8C%8C%EC%9D%BC-%ED%9E%88%EC%8A%A4%ED%86%A0%EB%A6%AC%EC%99%80-git-log-%EB%AA%85%EB%A0%B9%EC%96%B4">Git의 파일 히스토리와 git log 명령어</a></li>
+<li><a href="#github%EC%9D%98-%ED%8C%8C%EC%9D%BC-%ED%9E%88%EC%8A%A4%ED%86%A0%EB%A6%AC">Github의 파일 히스토리</a></li>
+<li><a href="#git-log---follow%EC%9D%98-%EB%B2%84%EA%B7%B8">git log --follow의 버그</a></li>
+<li><a href="#git-log---follow%EC%9D%98-%ED%95%9C%EA%B3%84">git log --follow의 한계</a></li>
+<li><a href="#github%EC%9D%98-%EB%B0%A9%EC%8B%9D">Github의 방식</a></li>
+<li>
+<a href="#%ED%8A%B9%EC%A0%95-%ED%8C%8C%EC%9D%BC%EC%9D%98-%ED%9E%88%EC%8A%A4%ED%86%A0%EB%A6%AC%EB%A5%BC-%EC%9D%98%EB%8F%84%EC%A0%81%EC%9C%BC%EB%A1%9C-%EC%B1%84%ED%83%9D%ED%95%98%EB%8A%94-%EB%B0%A9%EB%B2%95git-log%EC%9D%98-%ED%83%90%EC%83%89-%EC%9A%B0%EC%84%A0%EC%88%9C%EC%9C%84">특정 파일의 히스토리를 의도적으로 채택하는 방법(git log의 탐색 우선순위)</a><ul><li><a href="#git-log-%EC%9A%B0%EC%84%A0%EC%88%9C%EC%9C%84-%EA%B4%80%EB%A0%A8-%EC%B0%B8%EA%B3%A0">git log 우선순위 관련 참고</a></li></ul>
+</li>
+<li><a href="#%EA%B2%B0%EA%B3%BC%EB%AC%BC-1">결과물</a></li>
+</ul>
+</li>
+<li>
+<a href="#3-fast-forward-merge">3. Fast forward merge</a><ul><li><a href="#fast-forward-merge-%EA%B4%80%EB%A0%A8-%EC%B0%B8%EA%B3%A0">Fast-forward merge 관련 참고</a></li></ul>
+</li>
+<li><a href="#%EA%B2%B0%EB%A1%A0">결론</a></li>
+<li><a href="#references">References</a></li>
+</ul>
+
+            </nav>
+          </aside>
+        
+        <h2 id="이슈">이슈</h2>
+<ul>
+  <li>신규 API 코드와 기존 API 코드를 동시에 서비스하던 중, 기존 API를 deprecate시키고, 기존 API 코드를 삭제하려고 하는 상황이었다.</li>
+  <li>그런데 문제는 신규 코드 최초 작성 당시, 기존 코드를 복붙하여 작성되었고, 수년 간의 git 히스토리는 기존 코드에만 남아있고, 신규 코드의 git 히스토리는 복붙 이후의 시점만 기록되어 있었다.</li>
+  <li>아래는 기존 코드에는 히스토리가 다 남아있는 반면, 신규 코드에는 복붙 히스토리만 남아있는 모습이다.
+    <ul>
+      <li>(그리고 여기서의 중요한 포인트는 신규 코드는 기존 코드와 90% 이상 일치하는 중복 코드였기 때문에, 신규 코드는 사실상 동일한 코드에서 git 히스토리만 사라진 코드라고 볼 수 있었다.)</li>
+    </ul>
+  </li>
+</ul>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center">기존</th>
+      <th style="text-align: center">신규</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center"><img src="https://github.com/user-attachments/assets/904ae9a7-e095-4cb4-9d57-8c7839fa3e00" alt="Image"></td>
+      <td style="text-align: center"><img src="https://github.com/user-attachments/assets/af877689-0eeb-40cf-a949-1d053601bfdf" alt="Image"></td>
+    </tr>
+  </tbody>
+</table>
+
+<ul>
+  <li>여기서 이슈가 발생하는데, <strong>기존 API 코드를 삭제하더라도, git 히스토리는 유지하고자 했다.</strong>
+    <ul>
+      <li>개인적으로 각종 히스토리를 파악하는데 git 히스토리를 자주 활용하기도 하고,</li>
+      <li>단순 히스토리 파악을 포함해서, 미처 몰랐던 선대(?) 개발자들의 의도를 알 수 있어서 같은 실수를 반복하지 않게 하기도 하기 때문이다.</li>
+      <li>기존 코드를 그냥 삭제해도 히스토리를 보려면 볼수야 있지만, 기존 코드 삭제 이후에는 삭제된 기존 코드가 어떤 것이었는지 알아내서 찾아가야 한다.</li>
+    </ul>
+  </li>
+  <li>그리고 결정적으로 해당 클래스가 비지니스의 대부분의 주요한 로직과 히스토리를 담고 있는 클래스였기 때문에 git 히스토리를 그대로 가져가고자 했다.</li>
+  <li>그래서 아래와 같은 목표를 달성하기 위한 시행착오를 이 글에서 다루었다.</li>
+</ul>
+
+<h2 id="목표">목표</h2>
+
+<p>기존 코드의 git 히스토리를 신규 코드의 git 히스토리와 병합하고, 기존 코드를 삭제한다.</p>
+
+<h2 id="1-git-blame-병합">1. Git blame 병합</h2>
+
+<p>사실 이것을 시작한 최초의 목적은 글의 <a href="#%EC%9D%B4%EC%8A%88">서두</a>에서 보여준 기존 코드의 git blame을 신규 코드의 git blame에 반영하고 싶었던 것이었다.<br>
+그리고 동일한 니즈에 대한 해결책을 다룬 <a href="https://devblogs.microsoft.com/oldnewthing/20190514-00/?p=102493">글</a>이 있었다!</p>
+
+<p>요약하면 rename-rename merge conflict를 이용하는 방법으로, 서로 다른 파일 A,B의 git blame을 합치고자 할때, 아래와 같이 수행한다.</p>
+<ol>
+  <li>branch1 : A-&gt;C rename</li>
+  <li>branch2 : B-&gt;C rename</li>
+  <li>branch1과 branch2를 merge
+    <ul>
+      <li>이때 파일 C에 대해 발생하는 merge conflict를 resolve 해주어야한다.</li>
+    </ul>
+  </li>
+</ol>
+
+<p>구체적인 방법은 글에서 자세하게 다루고 있으니, 그대로 따라하면 된다.</p>
+
+<p>참고로, 이때 기존 코드를 신규 코드로(A-&gt;B) 바로 merge하지 않는 이유는, 이렇게 하게 되면, git blame이 merge 시점의 commit으로 모두 덮어써져 버리기 때문에, 달성하고자 하는 목적에 벗어난다.</p>
+
+<h3 id="결과물">결과물</h3>
+
+<p><img src="https://github.com/user-attachments/assets/2fc8e7a4-e6e7-489c-be63-b92895e6b75e" alt="Image"></p>
+
+<p>기존 코드와 신규 코드의 git blame이 잘 병합되었다.</p>
+
+<h3 id="추가적인-주의사항">추가적인 주의사항</h3>
+
+<p>위의 글에 따라 반영하면서 추가적으로 직접 겪었던 시행착오와 그에 따른 주의사항을 기록하였다.</p>
+
+<ul>
+  <li>merge conflict 해소시에는 기존 파일들의 라인을 선택/제거만 하고, 수정은 하지 않는 것이 좋다. 수정이 필요하다면 이후의 별도 커밋에서 수행하는 것이 git blame 유지에 바람직하다.
+    <ul>
+      <li>그 이유는, merge conflict 해소 시 기존에 있던 라인을 수정하면, git에서는 merge 시점에 새로운 라인을 추가한 것으로 인식하고, 해당 라인에 대한 git blame도 merge 커밋 시점으로 기록된다.
+        <ul>
+          <li>(git 입장에서는 기존 라인을 수정한 것인지 새로운 라인을 추가한 것인지 자체를 구분하는 것이 불가능하기 때문에)</li>
+        </ul>
+      </li>
+      <li>그래서 merge conflict 해소 직후 시점에는 컴파일이 되지 않는 상태의 커밋이 불가피하게 존재할 수 있다.(수정이 불가능하므로)</li>
+    </ul>
+  </li>
+  <li>완전히 동일한 라인이 두 개의 파일에 모두 포함되어 있을때, 해당 라인에 대한 git blame을 어떤 파일의 것으로 따라갈지는 git의 자체적인 휴리스틱(해당 라인의 앞뒤 라인의 유사도 등)에 따라 결정되기 때문에 일관된 방법을 찾는 것은 한계가 있다.
+    <ul>
+      <li>따라서 위 글의 예시에서처럼 기계적인 merge conflict resolve는 현실적으로 어렵다.</li>
+      <li>위 글에서 merge conflict가 기계적으로 resolve 가능했던 것은 합치고자 하는 두 개의 파일의 내용이 서로 다른 상황이었기 때문이다.</li>
+    </ul>
+  </li>
+  <li>rename 시에는 Intellij 등의 IDE 환경에서 rename하는 경우 파일의 “내용”(import나 클래스명 등)을 자동으로 바꿔주기 때문에 cli 환경에서 단순 mv만 실행하여 파일명만 변경하는 것을 권장한다.</li>
+</ul>
+
+<h2 id="2-github의-파일-히스토리-통합">2. Github의 파일 히스토리 통합</h2>
+
+<p>위에서 git blame을 합쳤으니 목적을 달성하고 마무리하려고 했다.. 그러나 예상치 못한 이슈가 발생했다.<br>
+위에서 작업한 내용을 푸시하여 Github에서 파일 히스토리를 확인해보니, rename 이전의 히스토리가 신규 코드 쪽 히스토리만 남아있고, 기존 코드의 히스토리는 누락된 것이다.</p>
+
+<p><img src="https://github.com/user-attachments/assets/87201416-1e94-4993-bfe4-2ddaef255b0e" alt="Image"><br>
+(Github UI 상에서 기존 파일에 대한 히스토리가 누락됐다.)</p>
+
+<p>git blame만큼이나 파일 히스토리 또한 중요하기도 하고, 왜 신규 파일의 히스토리만 보존된 것인지 확인하기 위해 살펴보기 시작했다.</p>
+
+<h3 id="git의-파일-히스토리와-git-log-명령어">Git의 파일 히스토리와 git log 명령어</h3>
+
+<p>들어가기에 앞서, git에서의 “파일” 히스토리에 대해 이해할 필요가 있다.<br>
+git의 기본 단위는 커밋이고, git에서는 단순히 커밋의 그래프만을 관리하고 추적하기 때문에 내부적으로는 “파일” 단위의 히스토리라는 개념 자체가 없다.</p>
+
+<p>다만, 파일 단위의 히스토리 조회 목적을 위해 git은 유틸성으로 <code class="language-plaintext highlighter-rouge">git log ${filename}</code> 형태의 명령어를 제공한다.<br>
+그리고 이 <code class="language-plaintext highlighter-rouge">git log ${filename}</code> 명령어는 결국엔 커밋 그래프를 순차적으로 탐색하면서 해당 <code class="language-plaintext highlighter-rouge">${filename}</code>이 포함된 커밋만을 필터링해서 출력해주는 방식으로 동작한다. (해당 파일에 대한 커밋 목록을 따로 관리하지 않기 때문에)</p>
+
+<p>그리고 해당 명령어는 기본적으로는 rename 이전 히스토리에 대한 추적을 지원하지 않는다. rename 커밋을 만나면, 필터링의 기준이 되는 파일명이 더 이상 존재하지 않으니 그대로 종료한다.<br>
+하지만 rename도 커밋 중의 하나일 뿐이기 때문에, rename 이전의 파일 히스토리도 이어서 보고 싶은 것은 자연스러운 니즈이며, 이러한 니즈를 위해서 git log 에는 <code class="language-plaintext highlighter-rouge">--follow</code> 옵션을 제공한다.</p>
+
+<p><code class="language-plaintext highlighter-rouge">git log --follow ${filename}</code> 형태의 명령어를 통해 rename 이전의 파일 히스토리도 함께 조회할 수 있다.</p>
+
+<h3 id="github의-파일-히스토리">Github의 파일 히스토리</h3>
+
+<p>Github에서도 파일 히스토리(특정 파일에 대한 commit 리스트)를 아래와 같이 제공한다.<br>
+<img src="https://i0.wp.com/user-images.githubusercontent.com/4021812/171795153-4f327a04-eb27-4d46-acb1-73d2e82ce4c5.gif?ssl=1" alt="171795153-4f327a04-eb27-4d46-acb1-73d2e82ce4c5.gif"></p>
+
+<p>그리고 Github에서는 git log 디폴트 옵션처럼, 원래 rename 이전의 파일 히스토리를 UI 상에서 지원하지 않았으나, 2022년 업데이트로 rename 이전의 파일 히스토리도 조회할 수 있도록 업데이트되었다.<br>
+<img src="https://github.com/user-attachments/assets/32a9cd30-7652-4936-8c3f-28342510df59" alt="Image"></p>
+<ul>
+  <li><a href="https://github.blog/changelog/2022-06-06-view-commit-history-across-file-renames-and-moves/">https://github.blog/changelog/2022-06-06-view-commit-history-across-file-renames-and-moves/</a></li>
+</ul>
+
+<p>예상하기로는 해당 기능은 동일한 목적의 <code class="language-plaintext highlighter-rouge">git log --follow</code> 옵션을 내부적으로 사용할 것 같다.<br>
+그런데 위 changelog에서 주목할 점은 <code class="language-plaintext highlighter-rouge">git log --follow</code>와 “similar”한 방식으로 동작한다는 문구이다.<br>
+결국 <code class="language-plaintext highlighter-rouge">git log --follow</code> 수행결과와 동일하지 않다는 것인데, 실제로 수행결과가 유사하기는 하나, 완전히 일치하지 않았다.</p>
+
+<p>왜 이미 동일한 목적으로 존재하는 <code class="language-plaintext highlighter-rouge">git log --follow</code> 명령어를 그대로 사용하지 않을까?<br>
+그 이유는 <code class="language-plaintext highlighter-rouge">git log --follow</code>의 버그에 있다.</p>
+
+<h3 id="git-log---follow의-버그">
+<code class="language-plaintext highlighter-rouge">git log --follow</code>의 버그</h3>
+
+<p><code class="language-plaintext highlighter-rouge">git log --follow</code>의 내부 동작 방식을 살펴보자.<br>
+<code class="language-plaintext highlighter-rouge">git log --follow</code> 의 내부 동작 방식을 자세히 설명한 <a href="https://stackoverflow.com/questions/46487476/git-log-follow-graph-skips-commits/46492159#46492159">글</a>이 있어 일부를 발췌하였다.</p>
+
+<p><img src="https://github.com/user-attachments/assets/0066d772-e9cf-49f1-ab4c-9e37efa27714" alt="Image"></p>
+
+<p>위의 예시를 단순화하여 표현하면 아래와 같다. (커밋의 이름은 커밋시간 순이며, 그래프를 시간 순으로 정렬하였다.)</p>
+
+<p><img class="mermaid" src="https://mermaid.ink/svg/eyJjb2RlIjoiJSV7aW5pdDoge1wiZ2l0R3JhcGhcIjoge1widXNlTWF4V2lkdGhcIjogZmFsc2UsICdtYWluQnJhbmNoTmFtZSc6ICdtYXN0ZXInfX19JSVcbmdpdEdyYXBoIEJUOlxuY29tbWl0IGlkOlwiW2EudHh0XSBDcmVhdGVcIiB0YWc6XCIxXCJcbmJyYW5jaCBmZWF0dXJlXG5jaGVja291dCBmZWF0dXJlXG5jb21taXQgaWQ6XCJbYS50eHRdIENoYW5nZVwiIHRhZzpcIjJcIlxuY2hlY2tvdXQgbWFzdGVyXG5jb21taXQgaWQ6XCJbYS50eHRdIHRvIFtiLnR4dF1cIiB0YWc6XCIzXCJcbm1lcmdlIGZlYXR1cmUgaWQ6XCJNZXJnZVwiIHRhZzpcIjRcIiIsIm1lcm1haWQiOm51bGx9"></p>
+
+<p>예시를 바탕으로 정리하면, (참고로 발췌한 부분의 예시가 반대로 적혀있어 이를 정정하고, 추가 내용을 보강하여 정리하였다.)</p>
+<ul>
+  <li>commit 4에서 <code class="language-plaintext highlighter-rouge">git log --follow b.txt</code> 명령어를 수행한 상황에서 살펴보자.</li>
+  <li>
+<code class="language-plaintext highlighter-rouge">--follow</code> 옵션은 rename 커밋(commit 3)을 만나면 탐색대상 파일을 바꿔치기(<code class="language-plaintext highlighter-rouge">b.txt</code> -&gt; <code class="language-plaintext highlighter-rouge">a.txt</code>) 하는 방식으로 동작한다. (as-is, to-be 파일명을 둘다 추적하는 방식으로 동작하지 않는다.)</li>
+  <li>그렇기 때문에 “바꿔치기가 언제 됐는지”(rename 커밋(commit 3)을 언제 방문했는지) 시점에 따라 결과가 달라진다. 예를 들어,
+    <ol>
+      <li>바꿔치기가 먼저 됐다면(commit 3를 먼저 방문했다면, 4-&gt;3-&gt;2-&gt;1), commit 3 방문 시점에 탐색 대상 파일명이 <code class="language-plaintext highlighter-rouge">b.txt</code> -&gt; <code class="language-plaintext highlighter-rouge">a.txt</code>로 바꿔치기가 되고, commit 2 방문 시점에는 대상 파일명이 <code class="language-plaintext highlighter-rouge">a.txt</code>이므로 commit 2가 포함된다. 결과는 3-&gt;2-&gt;1 로 출력된다.</li>
+      <li>하지만, 바꿔치기가 나중에 됐다면(commit 3를 나중에 방문했다면, 4-&gt;2-&gt;3-&gt;1), as-is 파일명 <code class="language-plaintext highlighter-rouge">a.txt</code>로 기록된 commit 2를 방문하는 시점에 탐색 대상 파일명은 <code class="language-plaintext highlighter-rouge">b.txt</code>이므로 commit 2는 누락된다. 결과는 3-&gt;1 로 출력된다.
+        <ul>
+          <li>위 stackoverflow 예시에서 최초 작성자가 의문을 제기한 케이스</li>
+        </ul>
+      </li>
+    </ol>
+  </li>
+  <li>확인 결과
+    <ul>
+      <li><img src="https://github.com/user-attachments/assets/a15d8d8e-27a8-41ac-b374-d7e4d542be36" alt="Image"></li>
+    </ul>
+  </li>
+  <li>그리고 <code class="language-plaintext highlighter-rouge">git log</code>의 탐색 순서는 priority queue 기반의 BFS(breadth first search) 방식으로 탐색한다.
+    <ul>
+      <li>자세한 내용은 <a href="#git-log-%EC%9A%B0%EC%84%A0%EC%88%9C%EC%9C%84-%EA%B4%80%EB%A0%A8-%EC%B0%B8%EA%B3%A0">git log 우선순위 관련</a> 참고</li>
+    </ul>
+  </li>
+</ul>
+
+<p>어쨌든 위의 내용은 내부적인 동작 방식에 대한 디테일한 설명인 것이고,<br>
+<strong>중요한 것은 <code class="language-plaintext highlighter-rouge">git log --follow</code> 명령어는 git log의 탐색 순서가 따라 결과 셋이 달라질 수 있다는 것이다.</strong></p>
+
+<h3 id="git-log---follow의-한계">
+<code class="language-plaintext highlighter-rouge">git log --follow</code>의 한계</h3>
+
+<p>위에서 <code class="language-plaintext highlighter-rouge">git log --follow</code>가 동시에 최대 한개의 파일만 추적이 가능하다는 것을 알았다.</p>
+
+<p>그럼 본론으로 돌아와 해결하고자 하는 문제에 위 내용을 적용해보자.<br>
+<a href="#1-git-blame-%EB%B3%91%ED%95%A9">1. Git blame 병합</a> 파트에서 적용하고자 하는 방법을 위의 예시와 동일한 도식으로 나타내면 아래와 같다.</p>
+
+<p><img class="mermaid" src="https://mermaid.ink/svg/eyJjb2RlIjoiJSV7aW5pdDoge1wiZ2l0R3JhcGhcIjoge1widXNlTWF4V2lkdGhcIjogZmFsc2UsICdtYWluQnJhbmNoTmFtZSc6ICdmZWF0dXJlQSd9fX0lJVxuZ2l0R3JhcGggQlQ6XG5jb21taXQgaWQ6XCJbQl0gRG8gc29tZXRoaW5nIGluIEJcIiB0YWc6XCIwXCJcbmNvbW1pdCBpZDpcIltBXSBEbyBzb21ldGhpbmcgaW4gQVwiIHRhZzpcIjFcIlxuYnJhbmNoIGZlYXR1cmVCXG5jaGVja291dCBmZWF0dXJlQlxuY29tbWl0IGlkOlwiW0JdIHRvIFtDXVwiIHRhZzpcIjJcIlxuY2hlY2tvdXQgZmVhdHVyZUFcbmNvbW1pdCBpZDpcIltBXSB0byBbQ11cIiB0YWc6XCIzXCJcbm1lcmdlIGZlYXR1cmVCIGlkOlwiW0NdIE1lcmdlIEEgYW5kIEIgYXMgQ1wiIHRhZzpcIjRcIiIsIm1lcm1haWQiOm51bGx9"></p>
+
+<p>그리고 이 상황에서 탐색의 경우의 수에 따른 <code class="language-plaintext highlighter-rouge">git log --follow C</code> 수행 시나리오를 떠올려보자.</p>
+<ol>
+  <li>commit 3을 먼저 방문(4-&gt;3-&gt;2-&gt;1-&gt;0)
+    <ul>
+      <li>commit 3 방문 시점에 탐색 대상 파일을 A로 변경</li>
+      <li>commit 2는 A가 포함되지 않았으므로 제외</li>
+      <li>commit 1은 A가 포함됐으므로 출력, commit 0은 A가 포함되지 않았으므로 제외</li>
+      <li>결과 : 4-&gt;3-&gt;1 (2와 0은 누락)</li>
+    </ul>
+  </li>
+  <li>commit 2를 먼저 방문(4-&gt;2-&gt;3-&gt;1-&gt;0)
+    <ul>
+      <li>commit 2 방문 시점에 탐색 대상 파일을 B로 변경</li>
+      <li>commit 3는 B가 포함되지 않았으므로 제외</li>
+      <li>commit 1은 B가 포함되지 않았으므로 제외, commit 0은 B가 포함됐으므로 포함.</li>
+      <li>결과 : 4-&gt;2-&gt;0 (3과 1은 누락)</li>
+    </ul>
+  </li>
+</ol>
+
+<p>두 가지 시나리오를 살펴본 결과, 결국 양쪽에서 rename이 발생한 경우, <strong>어느 쪽을 먼저 탐색하든, 다른 한쪽이 누락될 수 밖에 없다.</strong><br>
+이는 <code class="language-plaintext highlighter-rouge">git log --follow</code>가 동시에 최대 한개의 파일만 추적하기 때문에 발생하는 한계이며, 히스토리를 보존하고자 하는 본 과제의 목적상 아주 치명적이다.</p>
+
+<p>그리고 해당 한계에 대해 다룬 <a href="https://stackoverflow.com/questions/64454637/git-log-follow-not-working-to-show-history-beyond-renames/64468571#64468571">글</a>이 있어 일부를 발췌하였다.<br>
+<img src="https://github.com/user-attachments/assets/44655aea-6b9c-48fc-8679-230dc3230da0" alt="Image"></p>
+
+<p>결국 parent branch가 여러 개 있고, 한쪽 parent에서(혹은 양쪽 모두에서) rename이 있었던 경우 나머지 parent의 커밋 히스토리는 누락된다는 내용이다.</p>
+
+<h3 id="github의-방식">Github의 방식</h3>
+
+<p>앞서 Github에서는 파일 히스토리를 <code class="language-plaintext highlighter-rouge">git log --follow</code>와 “유사한” 방식으로 보여준다고 했다.<br>
+<code class="language-plaintext highlighter-rouge">git log --follow</code>는 위와 같은 버그와 한계가 있으니, Github에서는 이를 해결하였을까?</p>
+
+<p>결론부터 얘기하면 아니다.<br>
+Github의 UI 상에서 지원하는 파일 히스토리는 <code class="language-plaintext highlighter-rouge">git log --follow</code>와 약간 다른 결과를 보여주지만, 본질적으로 본 과제에서 문제가 되는, 한 쪽 파일의 히스토리가 누락되는 문제는 해결되지 않았다.</p>
+
+<p>Github의 파일 히스토리는 아래와 같이 동작하는 것으로 추측하고 있다. (관련 공식 레퍼런스를 찾진 못했다.)<br>
+Github url을 통해 아래와 같이 추측하였고, 추측한 내용을 로컬에서 수행한 결과와 화면에서 보여준 결과가 동일하였다.</p>
+
+<p>커밋 c1에 의해 A-&gt;B로의 rename이 있었고, 커밋 c2 상태에서 B의 파일 히스토리를 조회하는 시나리오를 기준으로,</p>
+<ol>
+  <li>최초에 파일 히스토리 조회시 <code class="language-plaintext highlighter-rouge">--follow</code> 옵션 없이 <code class="language-plaintext highlighter-rouge">git log c2 B</code>를 수행
+    <ul>
+      <li>파일 히스토리 버튼 클릭시 <code class="language-plaintext highlighter-rouge">github.com/{repo}/commits/c2/B</code> url로 연결된다.</li>
+      <li><img src="https://github.com/user-attachments/assets/fd001eab-98e3-46c5-9fcf-9e9568363ae7" alt="Image"></li>
+    </ul>
+  </li>
+  <li>마지막 커밋(rename 커밋, 즉 c1)에 도달한 경우 c1으로 부터 다시 <code class="language-plaintext highlighter-rouge">git log c1 A</code>를 수행
+    <ul>
+      <li>Github에서는 rename이 있었던 경우 <code class="language-plaintext highlighter-rouge">Rename from A (Browse History)</code> 형태의 링크를 제공하며,</li>
+      <li>해당 링크는 <code class="language-plaintext highlighter-rouge">github.com/{repo}/commits/c1/A?browsing_rename_history=true&amp;new_path=B&amp;original_branch=c2</code>로 연결된다.</li>
+      <li><img src="https://github.com/user-attachments/assets/d5020fa8-83ef-4183-8f8d-aceb7c16cd5a" alt="Image"></li>
+    </ul>
+  </li>
+  <li>마지막 커밋이 rename이 아닐때까지 1,2를 반복</li>
+</ol>
+
+<p>결국 요약하면, <code class="language-plaintext highlighter-rouge">--follow</code> 옵션 없이 <code class="language-plaintext highlighter-rouge">git log HEAD filename</code> 형태의 명령어를 HEAD와 filename을 바꿔가며 반복적으로 호출하는 형태이다.<br>
+<strong>하지만 여전히 동시에 최대 한개의 파일만 추적한다는 동일한 한계를 갖고 있기 때문에, 한 쪽 파일의 히스토리가 누락되는 한계는 여전히 남아있다.</strong></p>
+
+<h3 id="특정-파일의-히스토리를-의도적으로-채택하는-방법git-log의-탐색-우선순위">특정 파일의 히스토리를 의도적으로 채택하는 방법(git log의 탐색 우선순위)</h3>
+
+<p>위에서 살펴보았듯이, <code class="language-plaintext highlighter-rouge">git log --follow</code>든, Github이든 한 쪽의 히스토리가 누락되는 것은 불가피해보인다.<br>
+그럼 결국 한 쪽 파일의 히스토리를 선택해야하는 상황에 봉착한다. 본 과제의 목적은 기존 코드의 히스토리를 보존하고자 하는 것이었으므로, 기존 코드의 히스토리를 채택하자.</p>
+
+<p><a href="#github%EC%9D%98-%EB%B0%A9%EC%8B%9D">Github의 방식</a> 파트에서 살펴보았듯이, 기존 파일의 히스토리를 보존하기 위해서는 git log 탐색 순서상 마지막 커밋이 기존 파일의 rename 커밋이 되어야한다.<br>
+그렇다면, git log의 탐색 순서는 어떻게 결정되는 것일까?</p>
+
+<p>앞서 “<code class="language-plaintext highlighter-rouge">git log</code>의 탐색은 priority queue 기반의 BFS(breadth first search) 방식으로 탐색한다.” 라는 내용을 언급하였다.<br>
+이 말은 곧 git log는 우선순위 기반으로 탐색을 한다는 것이고, 우선순위의 디폴트로써 “커밋 시간”의 역순을 채택하고 있다.<br>
+<strong>결국 특정 커밋(보존하고자 하는 파일의 rename 커밋)을 git log가 마지막에 탐색하도록 하게 하기 위해서는 해당 커밋을 시간순으로 먼저 수행하면 된다.</strong></p>
+
+<p>따라서, 기존 파일의 rename 커밋이 마지막에 탐색되도록 하기 위해, 아래와 같이 기존 파일의 rename 커밋을 먼저 수행 후, 신규 파일의 rename 커밋을 이후에 수행하였다.</p>
+
+<p><img src="https://github.com/user-attachments/assets/da932aba-3b69-4d1f-9439-8753466f2d7e" alt="Image"></p>
+
+<h4 id="git-log-우선순위-관련-참고">git log 우선순위 관련 참고</h4>
+<ul>
+  <li>
+<a href="#2-github%EC%9D%98-%ED%8C%8C%EC%9D%BC-%ED%9E%88%EC%8A%A4%ED%86%A0%EB%A6%AC-%ED%86%B5%ED%95%A9">파트 도입부</a> 에서 문제가 되었던, 히스토리가 신규 파일로 연결되었던 것도, 신규 파일의 rename 커밋이 기존 파일의 rename 커밋보다 시간순으로 먼저 수행되었기 때문이었다.</li>
+  <li>git log의 탐색 우선순위는 디폴트인 커밋 시간 외에도 git log의 옵션을 통해 지정할 수 있으며, <code class="language-plaintext highlighter-rouge">--date-order</code>, <code class="language-plaintext highlighter-rouge">--author-date-order</code>, <code class="language-plaintext highlighter-rouge">--topo-order</code> 등의 옵션을 제공한다. (<a href="https://git-scm.com/docs/git-log#_commit_ordering">Git - git-log Documentation</a> 참고)</li>
+</ul>
+
+<h3 id="결과물-1">결과물</h3>
+
+<p>이로써 <a href="#2-github%EC%9D%98-%ED%8C%8C%EC%9D%BC-%ED%9E%88%EC%8A%A4%ED%86%A0%EB%A6%AC-%ED%86%B5%ED%95%A9">파트 도입부</a> 에서 Github의 파일 히스토리가 신규 파일로 연결되었던 것을 기존 파일로 연결되도록 하였다.<br>
+<img src="https://github.com/user-attachments/assets/fc6159f7-9610-44cc-a063-7d238e63d080" alt="Image"></p>
+
+<h2 id="3-fast-forward-merge">3. Fast forward merge</h2>
+
+<p>여기까지 왔으면, 복잡한 과정을 대부분 지나왔다.<br>
+여기서 한 가지 더 추가적인 주의사항이 존재하는데, 이 주의사항을 놓치면 지금까지의 수고가 무용지물이 될 수 있다. 그것은 바로 merge 방식이다.</p>
+
+<p>대부분의 피쳐 개발과 마찬가지로, 위의 모든 과정을 feature 브랜치에서 진행했기 때문에, develop 및 master로의 머지가 필요하다.<br>
+이때, 명시적인 merge commit이 발생하는 경우 master 및 develop 입장에서는 커밋 원자성이 훼손되기 때문에 커밋 원자성을 보존하기 위한 위의 노력들이 모두 물거품이 된다.<br>
+따라서, 명시적인 merge commit이 발생하지 않으면서 커밋 원자성을 보존할 수 있는 Fast forward merge 방식으로 머지해야한다.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center">Non fast forward merge</th>
+      <th style="text-align: center">Fast forward merge</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center"><img src="https://github.com/user-attachments/assets/296705c1-8fae-4de4-ae93-5ad79c1bed7e" alt="Image"></td>
+      <td style="text-align: center"><img src="https://github.com/user-attachments/assets/b4469f8b-cd20-47e1-9c2a-d61a0a9e5c74" alt="Image"></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>(Non-Fast-forward merge와 Fast forward merge의 차이점. 출처 : <a href="https://dev.to/lydiahallie/cs-visualized-useful-git-commands-37p1">🌳🚀 CS Visualized: Useful Git Commands - DEV Community</a>)</p>
+
+<p>그러나 문제는 Github에서는 아직까지 UI 상에서 fast forward merge를 지원하지 않고, 명시적인 merge commit을 강제한다.<br>
+따라서 Github 상의 Pull request를 fast forward merge 하기 위해서는 아래와 같이 로컬에서 fast-forward merge 후 push하는 방식으로 수행할 수 있다.<br>
+push 시점에 Github에서는 이를 인지하여 Pull request를 머지 처리한다.<br>
+<img src="https://github.com/user-attachments/assets/5acf4ce0-7cfe-44d2-ba59-9b3d65a1d26f" alt="Image"></p>
+
+<p>혹은 Github에서 <a href="https://github.com/marketplace/actions/fast-forward-pr">Fast Forward PR · Actions · GitHub Marketplace · GitHub</a> 과 같은 github actions를 활용할 수도 있다.</p>
+
+<h3 id="fast-forward-merge-관련-참고">Fast-forward merge 관련 참고</h3>
+<ul>
+  <li>Github에서 지원하는 다른 머지 방식인 squash and merge , rebase and merge는 fast-forward 와 유사한 방식으로 동작하지만 아래와 같은 이유로 적합하지 않다.
+    <ul>
+      <li>Squash and merge : 커밋 원자성이 훼손되므로, 이 경우에 적합하지 않다.</li>
+      <li>Rebase and merge : rebase는 결국 commit을 다시 수행하는 과정이라고 볼 수 있는데, 위에서 살펴본 것처럼 수동으로 충돌 해결이 필요하므로 버튼 자체가 disable된다.</li>
+    </ul>
+  </li>
+  <li>그리고 사실 이 문제는 Github에서 fast forward merge를 지원하지 않기 때문에 발생하는 문제이고, Gitlab 등에서는 Fast forward merge를 UI 상에서 지원한다.
+    <ul>
+      <li><img src="https://github.com/user-attachments/assets/514ad420-ecf6-4210-bbad-54312e7729e5" alt="Image"></li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="결론">결론</h2>
+
+<p>결국 1~3의 과정을 거쳐서 git blame를 병합하고, 기존 코드의 Github 파일 히스토리를 보존하면서 중복 코드를 병합할 수 있었다.</p>
+
+<p>다만, 여기까지 오면서 느낀 점은 두가지인데,</p>
+<ol>
+  <li>복잡하다.</li>
+  <li>그리고 결정적으로 복잡함을 이겨내더라도, 온전하게 기존 히스토리를 유지할 수 없다는 한계점 또한 있다.</li>
+</ol>
+
+<p>그렇기 때문에 본 과제를 진행하면서 배운 교훈은 아래와 같다.</p>
+
+<ol>
+  <li>위 방법을 사용하는 일이 없도록 하는 것이 가장 좋다.</li>
+  <li>다시 말해, 코드 복붙은 git 히스토리 관리 입장에서도 바람직하지 않다.
+    <ul>
+      <li>위에서 살펴본 방법으로 사후적인 수습은 가능하나, 복잡하고, 상황에 따라서는 온전한 수습이 되지 않을 수 있다.</li>
+    </ul>
+  </li>
+  <li>코드 복붙이 불가피하다면, 복사 시점에 단순 내용 복사가 아닌 git 히스토리를 같이 복사할 수 있는 아래 방법을 활용하는 것이 좋다.
+    <ul>
+      <li>
+<a href="https://stackoverflow.com/questions/16937359/git-copy-file-preserving-history/44036771#44036771">Git copy file preserving history - Stack Overflow</a> 참고</li>
+      <li>요약하면, 별도 브랜치에서 각각 A-&gt;B, A-&gt;C를 수행 후 merge, 그 이후 C-&gt;A로 rename하면 A와 B가 동일한 내용과 히스토리를 갖고 복사된다.</li>
+    </ul>
+  </li>
+</ol>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li><a href="https://devblogs.microsoft.com/oldnewthing/20190514-00/?p=102493">Mundane git tricks: Combining two files into one while preserving line history - The Old New Thing</a></li>
+  <li><a href="https://github.blog/changelog/2022-06-06-view-commit-history-across-file-renames-and-moves/">View commit history across file renames and moves - GitHub Changelog</a></li>
+  <li><a href="https://git-scm.com/docs/git-log#Documentation/git-log.txt---follow">Git - git-log Documentation</a></li>
+  <li><a href="https://stackoverflow.com/questions/46487476/git-log-follow-graph-skips-commits/46492159#46492159">git log - `git log –follow –graph` skips commits - Stack Overflow</a></li>
+  <li><a href="https://stackoverflow.com/questions/64454637/git-log-follow-not-working-to-show-history-beyond-renames/64468571#64468571">version control - Git log (–follow) not working to show history beyond renames - Stack Overflow</a></li>
+  <li><a href="https://stackoverflow.com/questions/59520900/does-git-log-use-depth-first-search-traversal-to-display-the-commits">Does ‘git log’ use Depth First Search traversal to display the commits? - Stack Overflow</a></li>
+  <li><a href="https://stackoverflow.com/questions/60597400/how-to-do-a-fast-forward-merge-on-github/66906599#66906599">How to do a fast-forward merge on GitHub? - Stack Overflow</a></li>
+  <li><a href="https://dev.to/lydiahallie/cs-visualized-useful-git-commands-37p1">🌳🚀 CS Visualized: Useful Git Commands - DEV Community</a></li>
+  <li><a href="https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/about-pull-request-merges#rebase-and-merge-your-commits">About pull request merges - GitHub Docs</a></li>
+  <li><a href="https://github.com/marketplace/actions/fast-forward-pr">Fast Forward PR · Actions · GitHub Marketplace · GitHub</a></li>
+  <li><a href="https://docs.gitlab.com/ee/user/project/merge_requests/methods/#fast-forward-merge">Merge methods | GitLab</a></li>
+  <li><a href="https://stackoverflow.com/questions/16937359/git-copy-file-preserving-history/44036771#44036771">Git copy file preserving history - Stack Overflow</a></li>
+</ul>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/tags/#git" class="page__taxonomy-item" rel="tag">Git</a>
+    
+    </span>
+  </p>
+
+
+
+
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-folder-open" aria-hidden="true"></i> Categories: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/categories/#git" class="page__taxonomy-item" rel="tag">Git</a>
+    
+    </span>
+  </p>
+
+
+        
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time datetime="2025-01-18T00:00:00+09:00">January 18, 2025</time></p>
+
+
+      </footer>
+
+      <section class="page__share">
+  
+    <h4 class="page__share-title">Share on</h4>
+  
+
+  <a href="https://twitter.com/intent/tweet?text=%EC%A4%91%EB%B3%B5+%EC%BD%94%EB%93%9C%EC%9D%98+Git+%ED%9E%88%EC%8A%A4%ED%86%A0%EB%A6%AC%EB%A5%BC+%EB%B3%91%ED%95%A9%ED%95%98%EA%B8%B0+%EC%9C%84%ED%95%9C+%EC%8B%9C%ED%96%89%EC%B0%A9%EC%98%A4%20https%3A%2F%2Fdreamsh19.github.io%2Fgit%2F%25EC%25A4%2591%25EB%25B3%25B5-%25EC%25BD%2594%25EB%2593%259C%25EC%259D%2598-git-%25ED%259E%2588%25EC%258A%25A4%25ED%2586%25A0%25EB%25A6%25AC%25EB%25A5%25BC-%25EB%25B3%2591%25ED%2595%25A9%25ED%2595%2598%25EA%25B8%25B0-%25EC%259C%2584%25ED%2595%259C-%25EC%258B%259C%25ED%2596%2589%25EC%25B0%25A9%25EC%2598%25A4%2F" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fdreamsh19.github.io%2Fgit%2F%25EC%25A4%2591%25EB%25B3%25B5-%25EC%25BD%2594%25EB%2593%259C%25EC%259D%2598-git-%25ED%259E%2588%25EC%258A%25A4%25ED%2586%25A0%25EB%25A6%25AC%25EB%25A5%25BC-%25EB%25B3%2591%25ED%2595%25A9%25ED%2595%2598%25EA%25B8%25B0-%25EC%259C%2584%25ED%2595%259C-%25EC%258B%259C%25ED%2596%2589%25EC%25B0%25A9%25EC%2598%25A4%2F" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fdreamsh19.github.io%2Fgit%2F%25EC%25A4%2591%25EB%25B3%25B5-%25EC%25BD%2594%25EB%2593%259C%25EC%259D%2598-git-%25ED%259E%2588%25EC%258A%25A4%25ED%2586%25A0%25EB%25A6%25AC%25EB%25A5%25BC-%25EB%25B3%2591%25ED%2595%25A9%25ED%2595%2598%25EA%25B8%25B0-%25EC%259C%2584%25ED%2595%259C-%25EC%258B%259C%25ED%2596%2589%25EC%25B0%25A9%25EC%2598%25A4%2F" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
+
+      
+  <nav class="pagination">
+    
+      <a href="/jersey/Jersey-Singleton-%EA%B0%9D%EC%B2%B4%EC%9D%98-%EC%B4%88%EA%B8%B0%ED%99%94-%EC%8B%9C%EC%A0%90/" class="pagination--pager" title="Jersey Singleton 객체의 초기화 시점
+">Previous</a>
+    
+    
+      <a href="#" class="pagination--pager disabled">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+      <div class="page__comments">
+  
+  
+      <h4 class="page__comments-title">Leave a comment</h4>
+      <section id="disqus_thread"></section>
+    
+</div>
+
+    
+  </article>
+
+  
+  
+</div>
+
+    </div>
+
+    
+      <div class="search-content">
+        <div class="search-content__inner-wrap">
+<form class="search-content__form" onkeydown="return event.key != 'Enter';">
+    <label class="sr-only" for="search">
+      Enter your search term...
+    </label>
+    <input type="search" id="search" class="search-input" tabindex="-1" placeholder="Enter your search term...">
+  </form>
+  <div id="results" class="results"></div>
+</div>
+
+      </div>
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+      <li><strong>Follow:</strong></li>
+    
+
+    
+      
+        
+      
+        
+      
+        
+          <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i> LinkedIn</a></li>
+        
+      
+    
+
+    <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+  </ul>
+</div>
+
+<div class="page__footer-copyright">© 2025 서버 개발자. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+<script src="/assets/js/lunr/lunr.min.js"></script>
+<script src="/assets/js/lunr/lunr-store.js"></script>
+<script src="/assets/js/lunr/lunr-en.js"></script>
+
+
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LM91QEFQ4D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-LM91QEFQ4D', { 'anonymize_ip': false});
+</script>
+
+
+
+
+
+
+    
+  <script>
+    var disqus_config = function () {
+      this.page.url = "https://dreamsh19.github.io/git/%EC%A4%91%EB%B3%B5-%EC%BD%94%EB%93%9C%EC%9D%98-git-%ED%9E%88%EC%8A%A4%ED%86%A0%EB%A6%AC%EB%A5%BC-%EB%B3%91%ED%95%A9%ED%95%98%EA%B8%B0-%EC%9C%84%ED%95%9C-%EC%8B%9C%ED%96%89%EC%B0%A9%EC%98%A4/";  /* Replace PAGE_URL with your page's canonical URL variable */
+      this.page.identifier = "/git/중복-코드의-git-히스토리를-병합하기-위한-시행착오"; /* Replace PAGE_IDENTIFIER with your page's unique identifier variable */
+    };
+    (function() { /* DON'T EDIT BELOW THIS LINE */
+      var d = document, s = d.createElement('script');
+      s.src = 'https://dreamsh19-github-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', +new Date());
+      (d.head || d.body).appendChild(s);
+    })();
+  </script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript>
+
+
+  
+
+
+
+
+
+  </body>
+</html>

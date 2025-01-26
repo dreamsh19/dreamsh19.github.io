@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.21.0 by Michael Rose
+  Copyright 2013-2020 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+--><html lang="en" class="no-js">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>Scale Out과 Scale Up - 기술을 기술하다</title>
+<meta name="description" content="서버 확장을 위한 방법에는 크게 두가지가 있는데 바로 Scale out과 Scale up이 그것이다. 한 대의 서버에서 감당할 수 있는 부하를 감당할 수 있도록 하는 것이 두 방법의 공통된 목표이다. 한 사람에게 주어지는 일이 많아서 감당이 안되면 이에 대한 대책으로 두 가지를 생각할 수 있다.">
+
+
+  <meta name="author" content="ㅎㅅㅎ">
+  
+  <meta property="article:author" content="ㅎㅅㅎ">
+  
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="기술을 기술하다">
+<meta property="og:title" content="Scale Out과 Scale Up">
+<meta property="og:url" content="https://dreamsh19.github.io/server/Scale-Out%EA%B3%BC-Scale-Up/">
+
+
+  <meta property="og:description" content="서버 확장을 위한 방법에는 크게 두가지가 있는데 바로 Scale out과 Scale up이 그것이다. 한 대의 서버에서 감당할 수 있는 부하를 감당할 수 있도록 하는 것이 두 방법의 공통된 목표이다. 한 사람에게 주어지는 일이 많아서 감당이 안되면 이에 대한 대책으로 두 가지를 생각할 수 있다.">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2021-03-31T00:00:00+09:00">
+
+
+
+
+
+  
+
+  
+
+
+<link rel="canonical" href="https://dreamsh19.github.io/server/Scale-Out%EA%B3%BC-Scale-Up/">
+
+
+
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    
+      "@type": "Person",
+      "name": "서버 개발자",
+      "url": "https://dreamsh19.github.io/"
+    
+  }
+</script>
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+<link href="/feed.xml" type="application/atom+xml" rel="alternate" title="기술을 기술하다 Feed">
+
+<!-- https://t.co/dKP3o1e -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script>
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<!--[if IE]>
+  <style>
+    /* old IE unsupported flexbox fixes */
+    .greedy-nav .site-title {
+      padding-right: 3em;
+    }
+    .greedy-nav button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+    }
+  </style>
+<![endif]-->
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single">
+    <nav class="skip-links">
+  <h2 class="screen-reader-text">Skip links</h2>
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    <!--[if lt IE 9]>
+<div class="notice--danger align-center" style="margin: 0;">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience.</div>
+<![endif]-->
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          기술을 기술하다
+          
+        </a>
+        <ul class="visible-links">
+<li class="masthead__menu-item">
+              <a href="/">Home</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/categories/">Categories</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/tags/">Tags</a>
+            </li>
+</ul>
+        
+        <button class="search__toggle" type="button">
+          <span class="visually-hidden">Toggle search</span>
+          <svg class="icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 15.99 16">
+            <path d="M15.5,13.12L13.19,10.8a1.69,1.69,0,0,0-1.28-.55l-0.06-.06A6.5,6.5,0,0,0,5.77,0,6.5,6.5,0,0,0,2.46,11.59a6.47,6.47,0,0,0,7.74.26l0.05,0.05a1.65,1.65,0,0,0,.5,1.24l2.38,2.38A1.68,1.68,0,0,0,15.5,13.12ZM6.4,2A4.41,4.41,0,1,1,2,6.4,4.43,4.43,0,0,1,6.4,2Z" transform="translate(-.01)"></path>
+          </svg>
+        </button>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+
+
+<div itemscope itemtype="https://schema.org/Person">
+
+  
+
+  <div class="author__content">
+    
+      <h3 class="author__name" itemprop="name">ㅎㅅㅎ</h3>
+    
+    
+      <div class="author__bio" itemprop="description">
+        <p>Backend Dev</p>
+
+      </div>
+    
+  </div>
+
+  <div class="author__urls-wrapper">
+    <button class="btn btn--inverse">Follow</button>
+    <ul class="author__urls social-icons">
+      
+        <li itemprop="homeLocation" itemscope itemtype="https://schema.org/Place">
+          <i class="fas fa-fw fa-map-marker-alt" aria-hidden="true"></i> <span itemprop="name">South Korea</span>
+        </li>
+      
+
+      
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+            <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i><span class="label">GitHub</span></a></li>
+          
+        
+          
+            <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span class="label">LinkedIn</span></a></li>
+          
+        
+          
+        
+      
+
+      
+
+      
+        <li>
+          <a href="mailto:dreamsh19@gmail.com">
+            <meta itemprop="email" content="dreamsh19@gmail.com">
+            <i class="fas fa-fw fa-envelope-square" aria-hidden="true"></i><span class="label">Email</span>
+          </a>
+        </li>
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      <!--
+  <li>
+    <a href="http://link-to-whatever-social-network.com/user/" itemprop="sameAs" rel="nofollow noopener noreferrer">
+      <i class="fas fa-fw" aria-hidden="true"></i> Custom Social Profile Link
+    </a>
+  </li>
+-->
+    </ul>
+  </div>
+</div>
+
+  
+  <a href="https://hits.seeyoufarm.com" style="display: none;">
+    <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fdreamsh19.github.io&count_bg=%2348AFB3&title_bg=%237D8B8E&icon=&icon_color=%23360E0E&title=hits&edge_flat=false">
+  </a>  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="Scale Out과 Scale Up">
+    <meta itemprop="description" content="서버 확장을 위한 방법에는 크게 두가지가 있는데 바로 Scale out과 Scale up이 그것이다. 한 대의 서버에서 감당할 수 있는 부하를 감당할 수 있도록 하는 것이 두 방법의 공통된 목표이다. 한 사람에게 주어지는 일이 많아서 감당이 안되면 이에 대한 대책으로 두 가지를 생각할 수 있다.">
+    <meta itemprop="datePublished" content="2021-03-31T00:00:00+09:00">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">Scale Out과 Scale Up
+</h1>
+          
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right sticky">
+            <nav class="toc">
+              <header><h4 class="nav__title">
+<i class="fas fa-file-alt"></i> On this page</h4></header>
+              <ul class="toc__menu"><li><a href="#references">References</a></li></ul>
+
+            </nav>
+          </aside>
+        
+        <p>서버 확장을 위한 방법에는 크게 두가지가 있는데 바로 Scale out과 Scale up이 그것이다. 한 대의 서버에서 감당할 수 있는 부하를 감당할 수 있도록 하는 것이 두 방법의 공통된 목표이다. 한 사람에게 주어지는 일이 많아서 감당이 안되면 이에 대한 대책으로 두 가지를 생각할 수 있다.</p>
+
+<ul>
+  <li><strong>일을 하는 사람을 여럿으로 늘리는 것(Scale Out)</strong></li>
+  <li><strong>일을 더 잘하는 사람으로 교체하는 것(Scale Up)</strong></li>
+</ul>
+
+<p>이 바로 그것이다.</p>
+
+<p>기존의 서버가 1GHz CPU, 2GB 메모리였다면,</p>
+
+<ul>
+  <li>스케일 아웃은 1GHz CPU, 2GB 메모리를 가진 서버를 한 대 더 붙이는 방법</li>
+  <li>스케일 업은 기존의 서버를 2GHz CPU, 4GB 메모리로 업그레이드하는 것</li>
+</ul>
+
+<p>(수치가 2배인 것은 예시일뿐 꼭 2배일 필요는 없다)</p>
+
+<p><img src="https://raw.githubusercontent.com/dreamsh19/dreamsh19.github.io/master/assets/image/Drawing1.jpg" alt="Scale up 과 Scale out 적용을 잘못 사용한 사례 : 스마일서브 공식 블로그 [ IDC HOWTO ]"></p>
+
+<p>당연하게도 두가지 방법 모두 장단점이 있기 때문에 목적에 따라 적합한 방법을 사용한다. 베이스캠프 Sprint에서는 스케일 아웃 방법을 선택했다. (고가용성의 목적도 충족하기 위해서) 아래는 내가 나름대로 정리한 각 방법의 특징 및 장단점이다. 위에 사람에 비유한 것을 떠올리면 쉽게 이해가 되었다. 비슷한 능력의 사람을 여럿 고용할 때와 뛰어난 능력의 사람을 한 명 고용할 때의 상황과 비슷하다고 느껴졌다.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th> </th>
+      <th>Scale Out</th>
+      <th>Scale Up</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>확장성</td>
+      <td>
+<ul>
+  <li>수평 확장<br>- 지속적 확장이 가능하다(1대-&gt;2대-&gt;10대-&gt;…)</li>
+</ul>
+</td>
+      <td>
+<ul>
+  <li>수직 확장<br>- 성능 확장에 한계가 있다.(물리 장비의 기술적 한계가 있다.)</li>
+</ul>
+</td>
+    </tr>
+    <tr>
+      <td>장애 발생 시</td>
+      <td>
+<ul>
+  <li>서버 하나가 죽어도 서비스 장애는 일어나지 않음<br>- 고가용성</li>
+</ul>
+</td>
+      <td>
+<ul>
+  <li>SPOF(Single Point of Failure)<br>- 이 서버가 죽으면 서비스 전체 장애</li>
+</ul>
+</td>
+    </tr>
+    <tr>
+      <td>관리 및 운영</td>
+      <td>
+<ul>
+  <li>생각할게 많아짐 = 어려움 (멀티스레드 환경에서의 어려움을 생각하면 될듯) <br>- 당장 로드밸런서부터 필요<br>- 메모리를 공유하지 않기 때문에 공유 스토리지가 필요 ex) Redis 등</li>
+</ul>
+</td>
+      <td>
+<ul>
+  <li>확장에 따른 추가 관리 및 운영 필요 없음</li>
+</ul>
+</td>
+    </tr>
+    <tr>
+      <td>활용</td>
+      <td>웹 서버 확장, 분산처리 시스템</td>
+      <td>DB 서버</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li><a href="https://m.blog.naver.com/islove8587/220548900044">https://m.blog.naver.com/islove8587/220548900044</a></li>
+  <li><a href="https://idchowto.com/?p=29915">https://idchowto.com/?p=29915</a></li>
+</ul>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/tags/#scale-out" class="page__taxonomy-item" rel="tag">Scale out</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#scale-up" class="page__taxonomy-item" rel="tag">Scale up</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#server" class="page__taxonomy-item" rel="tag">Server</a>
+    
+    </span>
+  </p>
+
+
+
+
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-folder-open" aria-hidden="true"></i> Categories: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/categories/#server" class="page__taxonomy-item" rel="tag">Server</a>
+    
+    </span>
+  </p>
+
+
+        
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time datetime="2021-03-31T00:00:00+09:00">March 31, 2021</time></p>
+
+
+      </footer>
+
+      <section class="page__share">
+  
+    <h4 class="page__share-title">Share on</h4>
+  
+
+  <a href="https://twitter.com/intent/tweet?text=Scale+Out%EA%B3%BC+Scale+Up%20https%3A%2F%2Fdreamsh19.github.io%2Fserver%2FScale-Out%25EA%25B3%25BC-Scale-Up%2F" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fdreamsh19.github.io%2Fserver%2FScale-Out%25EA%25B3%25BC-Scale-Up%2F" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fdreamsh19.github.io%2Fserver%2FScale-Out%25EA%25B3%25BC-Scale-Up%2F" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
+
+      
+  <nav class="pagination">
+    
+      <a href="/basecamp/%EB%B2%A0%EC%9D%B4%EC%8A%A4%EC%BA%A0%ED%94%84-Sprint9/" class="pagination--pager" title="베이스캠프 Sprint9
+">Previous</a>
+    
+    
+      <a href="/mac/Mac%EC%97%90%EC%84%9C-%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7-%EB%B0%94%ED%83%95%ED%99%94%EB%A9%B4%EB%A7%8C-%EB%90%A0%EB%95%8C/" class="pagination--pager" title="Mac에서 스크린샷 바탕화면만 될때
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+      <div class="page__comments">
+  
+  
+      <h4 class="page__comments-title">Leave a comment</h4>
+      <section id="disqus_thread"></section>
+    
+</div>
+
+    
+  </article>
+
+  
+  
+</div>
+
+    </div>
+
+    
+      <div class="search-content">
+        <div class="search-content__inner-wrap">
+<form class="search-content__form" onkeydown="return event.key != 'Enter';">
+    <label class="sr-only" for="search">
+      Enter your search term...
+    </label>
+    <input type="search" id="search" class="search-input" tabindex="-1" placeholder="Enter your search term...">
+  </form>
+  <div id="results" class="results"></div>
+</div>
+
+      </div>
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+      <li><strong>Follow:</strong></li>
+    
+
+    
+      
+        
+      
+        
+      
+        
+          <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i> LinkedIn</a></li>
+        
+      
+    
+
+    <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+  </ul>
+</div>
+
+<div class="page__footer-copyright">© 2025 서버 개발자. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+<script src="/assets/js/lunr/lunr.min.js"></script>
+<script src="/assets/js/lunr/lunr-store.js"></script>
+<script src="/assets/js/lunr/lunr-en.js"></script>
+
+
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LM91QEFQ4D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-LM91QEFQ4D', { 'anonymize_ip': false});
+</script>
+
+
+
+
+
+
+    
+  <script>
+    var disqus_config = function () {
+      this.page.url = "https://dreamsh19.github.io/server/Scale-Out%EA%B3%BC-Scale-Up/";  /* Replace PAGE_URL with your page's canonical URL variable */
+      this.page.identifier = "/server/Scale-Out과-Scale-Up"; /* Replace PAGE_IDENTIFIER with your page's unique identifier variable */
+    };
+    (function() { /* DON'T EDIT BELOW THIS LINE */
+      var d = document, s = d.createElement('script');
+      s.src = 'https://dreamsh19-github-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', +new Date());
+      (d.head || d.body).appendChild(s);
+    })();
+  </script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript>
+
+
+  
+
+
+
+
+
+  </body>
+</html>

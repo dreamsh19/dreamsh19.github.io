@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.21.0 by Michael Rose
+  Copyright 2013-2020 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+--><html lang="en" class="no-js">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>Linux Top 명령어 - 기술을 기술하다</title>
+<meta name="description" content="리눅스에서 프로세스 정보를 살펴 볼 수 있는 top 명령어에 대해 다뤄보고자 한다.">
+
+
+  <meta name="author" content="ㅎㅅㅎ">
+  
+  <meta property="article:author" content="ㅎㅅㅎ">
+  
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="기술을 기술하다">
+<meta property="og:title" content="Linux Top 명령어">
+<meta property="og:url" content="https://dreamsh19.github.io/linux/Linux-top-%EB%AA%85%EB%A0%B9%EC%96%B4/">
+
+
+  <meta property="og:description" content="리눅스에서 프로세스 정보를 살펴 볼 수 있는 top 명령어에 대해 다뤄보고자 한다.">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2021-04-20T00:00:00+09:00">
+
+
+
+
+
+  
+
+  
+
+
+<link rel="canonical" href="https://dreamsh19.github.io/linux/Linux-top-%EB%AA%85%EB%A0%B9%EC%96%B4/">
+
+
+
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    
+      "@type": "Person",
+      "name": "서버 개발자",
+      "url": "https://dreamsh19.github.io/"
+    
+  }
+</script>
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+<link href="/feed.xml" type="application/atom+xml" rel="alternate" title="기술을 기술하다 Feed">
+
+<!-- https://t.co/dKP3o1e -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script>
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<!--[if IE]>
+  <style>
+    /* old IE unsupported flexbox fixes */
+    .greedy-nav .site-title {
+      padding-right: 3em;
+    }
+    .greedy-nav button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+    }
+  </style>
+<![endif]-->
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single">
+    <nav class="skip-links">
+  <h2 class="screen-reader-text">Skip links</h2>
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    <!--[if lt IE 9]>
+<div class="notice--danger align-center" style="margin: 0;">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience.</div>
+<![endif]-->
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          기술을 기술하다
+          
+        </a>
+        <ul class="visible-links">
+<li class="masthead__menu-item">
+              <a href="/">Home</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/categories/">Categories</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/tags/">Tags</a>
+            </li>
+</ul>
+        
+        <button class="search__toggle" type="button">
+          <span class="visually-hidden">Toggle search</span>
+          <svg class="icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 15.99 16">
+            <path d="M15.5,13.12L13.19,10.8a1.69,1.69,0,0,0-1.28-.55l-0.06-.06A6.5,6.5,0,0,0,5.77,0,6.5,6.5,0,0,0,2.46,11.59a6.47,6.47,0,0,0,7.74.26l0.05,0.05a1.65,1.65,0,0,0,.5,1.24l2.38,2.38A1.68,1.68,0,0,0,15.5,13.12ZM6.4,2A4.41,4.41,0,1,1,2,6.4,4.43,4.43,0,0,1,6.4,2Z" transform="translate(-.01)"></path>
+          </svg>
+        </button>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+
+
+<div itemscope itemtype="https://schema.org/Person">
+
+  
+
+  <div class="author__content">
+    
+      <h3 class="author__name" itemprop="name">ㅎㅅㅎ</h3>
+    
+    
+      <div class="author__bio" itemprop="description">
+        <p>Backend Dev</p>
+
+      </div>
+    
+  </div>
+
+  <div class="author__urls-wrapper">
+    <button class="btn btn--inverse">Follow</button>
+    <ul class="author__urls social-icons">
+      
+        <li itemprop="homeLocation" itemscope itemtype="https://schema.org/Place">
+          <i class="fas fa-fw fa-map-marker-alt" aria-hidden="true"></i> <span itemprop="name">South Korea</span>
+        </li>
+      
+
+      
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+            <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i><span class="label">GitHub</span></a></li>
+          
+        
+          
+            <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span class="label">LinkedIn</span></a></li>
+          
+        
+          
+        
+      
+
+      
+
+      
+        <li>
+          <a href="mailto:dreamsh19@gmail.com">
+            <meta itemprop="email" content="dreamsh19@gmail.com">
+            <i class="fas fa-fw fa-envelope-square" aria-hidden="true"></i><span class="label">Email</span>
+          </a>
+        </li>
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      <!--
+  <li>
+    <a href="http://link-to-whatever-social-network.com/user/" itemprop="sameAs" rel="nofollow noopener noreferrer">
+      <i class="fas fa-fw" aria-hidden="true"></i> Custom Social Profile Link
+    </a>
+  </li>
+-->
+    </ul>
+  </div>
+</div>
+
+  
+  <a href="https://hits.seeyoufarm.com" style="display: none;">
+    <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fdreamsh19.github.io&count_bg=%2348AFB3&title_bg=%237D8B8E&icon=&icon_color=%23360E0E&title=hits&edge_flat=false">
+  </a>  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="Linux Top 명령어">
+    <meta itemprop="description" content="리눅스에서 프로세스 정보를 살펴 볼 수 있는 top 명령어에 대해 다뤄보고자 한다.">
+    <meta itemprop="datePublished" content="2021-04-20T00:00:00+09:00">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">Linux Top 명령어
+</h1>
+          
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right sticky">
+            <nav class="toc">
+              <header><h4 class="nav__title">
+<i class="fas fa-file-alt"></i> On this page</h4></header>
+              <ul class="toc__menu">
+<li><a href="#top">top</a></li>
+<li>
+<a href="#%ED%94%84%EB%A1%9C%EC%84%B8%EC%8A%A4%EC%9D%98-%EB%A9%94%EB%AA%A8%EB%A6%AC">프로세스의 메모리</a><ul>
+<li><a href="#virt">VIRT</a></li>
+<li><a href="#res">RES</a></li>
+<li><a href="#shr">SHR</a></li>
+<li><a href="#memory-commit">Memory commit</a></li>
+</ul>
+</li>
+<li><a href="#%ED%94%84%EB%A1%9C%EC%84%B8%EC%8A%A4-%EC%83%81%ED%83%9C">프로세스 상태</a></li>
+<li><a href="#%ED%94%84%EB%A1%9C%EC%84%B8%EC%8A%A4-%EC%9A%B0%EC%84%A0%EC%88%9C%EC%9C%84">프로세스 우선순위</a></li>
+<li><a href="#references">References</a></li>
+</ul>
+
+            </nav>
+          </aside>
+        
+        <p>리눅스에서 프로세스 정보를 살펴 볼 수 있는 top 명령어에 대해 다뤄보고자 한다.</p>
+
+<h2 id="top">top</h2>
+
+<ul>
+  <li>top = table of processes</li>
+  <li>
+<code class="language-plaintext highlighter-rouge">$ top -b -n 1</code> 실행 결과
+    <ul>
+      <li>옵션없이 <code class="language-plaintext highlighter-rouge">top</code>실행 시 interval(디폴트 3초)을 두고 refresh</li>
+      <li>-b : batch mode. 더 이상 인풋을 받지 않고 해당 순간의 top를 출력</li>
+    </ul>
+  </li>
+</ul>
+
+<p><img src="https://raw.githubusercontent.com/dreamsh19/dreamsh19.github.io/master/assets/image/image-20210421022237221.png" alt="image-20210421022237221"></p>
+
+<p>top 출력 결과중에서 이 포스트에서 자세히 살펴볼 부분은 빨간색 박스로 표시한 부분이다.</p>
+
+<ul>
+  <li>
+    <p>Cpu, Mem, Swap : 하드웨어 리소스 사용량</p>
+  </li>
+  <li>
+    <p>PR, NI : 프로세스 우선순위</p>
+  </li>
+  <li>
+    <p>VIRT, RES, SHR : 프로세스가 사용하는 메모리 사용량</p>
+  </li>
+  <li>
+    <p>S : 프로세스 상태</p>
+  </li>
+</ul>
+
+<h2 id="프로세스의-메모리">프로세스의 메모리</h2>
+
+<h3 id="virt">VIRT</h3>
+
+<ul>
+  <li>
+    <p>프로세스가 사용하고 있는 virtual memory 전체 용량</p>
+  </li>
+  <li>커도 문제되지 않음</li>
+  <li>Memory commit : 예약을 했을 뿐 실제로 할당을 하진 않음</li>
+</ul>
+
+<h3 id="res">RES</h3>
+
+<ul>
+  <li>
+    <p>현재 프로세스가 사용하고 있는 <strong>물리</strong> 메모리양</p>
+  </li>
+  <li><strong>이 부분이 메모리 사용과 관련해서 실제로 중요한 부분</strong></li>
+  <li>이게 높은 걸 찾아야 실제 메모리 점유율이 높은 프로세스를 찾을 수 있다.</li>
+</ul>
+
+<h3 id="shr">SHR</h3>
+
+<ul>
+  <li>
+    <p>다른 프로세스와 공유하는 shared memory 양</p>
+  </li>
+  <li>
+    <p>ex) 리눅스 glibc 라이브러리 - 대부분의 리눅스 프로세스가 참조하는 라이브러리</p>
+  </li>
+</ul>
+
+<h3 id="memory-commit">Memory commit</h3>
+
+<ul>
+  <li>
+    <p>프로세스가 커널에 필요한 메모리를 요청하면, 커널이 사용가능한 메모리 영역을 주고 해당 영역을 프로세스에 주었다는 것을 저장해두는 과정. <strong>이때, 실제 할당이 일어나지 않음</strong></p>
+  </li>
+  <li>Lazy. 실제로 사용할 때 page fault 발생하여 그 때서야 물리 메모리에 binding되어 RES에 포함</li>
+  <li>Why lazy?
+    <ul>
+      <li>가장 큰 이유는 fork() 때문</li>
+      <li>대부분 fork() 직후에 exec()을 실행하기 때문에 메모리 미리 할당해봐야 exec()을 바로 호출하면 쓸모없어진다.</li>
+      <li>이를 방지하기 위해 COW(Copy-on-write) 기법을 활용하고</li>
+      <li>memory commit 방식이 없으면 COW도 불가능</li>
+    </ul>
+  </li>
+  <li>
+<code class="language-plaintext highlighter-rouge">sar -r</code>의 <code class="language-plaintext highlighter-rouge">%commit</code> : 시스템의 메모리 커밋 비율
+    <ul>
+      <li>물리 메모리에 할당한 척만하고 실제 사용하지 않는 메모리 비율(전체 메모리 대비)</li>
+      <li>= 물리 메모리에 할당될 가능성이 있는 비율 =&gt; 비율이 높으면 시스템 부하 가능</li>
+    </ul>
+  </li>
+  <li>그렇다면, vm을 물리 메모리보다 더 많은 양만큼 overcommit하게 되는데 무한대로 할당받을 수 있는가? == <code class="language-plaintext highlighter-rouge">vm.overcommit_memory</code>  옵션에 따라 다름.</li>
+  <li>
+<code class="language-plaintext highlighter-rouge">vm.ovecommit_memory</code>
+    <ul>
+      <li>0(default) : 요청 메모리가 Page Cache+Swap Memory+Slab Reclaimable보다 작을때 commit일어남. 현재 free memory 크기와 무관</li>
+      <li>1 : 무조건 commit</li>
+      <li>2 : <code class="language-plaintext highlighter-rouge">vm.overcommit_ratio</code> (물리 메모리에 대한 %, 기본값 50)의 비율 반영하여 <code class="language-plaintext highlighter-rouge">Swap memory+(물리메모리 크기 * vm.overcommit_ratio)</code> 보다 작으면 commit. 이보다 크면 메모리 할당 거부하여 에러 발생 시킴(malloc()에서 null Return)</li>
+    </ul>
+  </li>
+  <li>어찌되었든 overcommit을 지원하고 max값을 어떻게 결정하느냐가 다를 뿐.</li>
+</ul>
+
+<h2 id="프로세스-상태">프로세스 상태</h2>
+
+<ul>
+  <li>top의 S(Status)를 통해 확인</li>
+  <li>상태 종류
+    <ul>
+      <li>D : uninterruptible sleep : I/O(디스크, 네트워크) 대기 중.
+        <ul>
+          <li>Run queue에서 제거. Wait queue에 등록</li>
+          <li>이게 많으면 시스템에 영향. 왜냐면 다 R로 돌아갈 애들이기 때문에</li>
+          <li>따라서 시스템 부하 계산에 포함시킨다.</li>
+        </ul>
+      </li>
+      <li>R : ready-to-run
+        <ul>
+          <li>run queue에 포함된 프로세스(running+waiting)</li>
+          <li>실제로 cpu 자원 소모 중인 프로세스</li>
+        </ul>
+      </li>
+      <li>S : (Interruptible) sleeping.
+        <ul>
+          <li>S는 아무나 깨울 수 있지만, D는 해당 I/O 드라이버만 깨울 수 있다는 점에서 차이</li>
+        </ul>
+      </li>
+      <li>T : traced or stopped. strace 등으로 프로세스의 시스템 콜을 추적하고 있는 상태. 흔하지 않음</li>
+      <li>Z : zombie. 부모 프로세스가 먼저 죽었을 때 남겨진 자식 프로세스. 부모가 회수를 못하기 때문에 문제
+        <ul>
+          <li>CPU나 메모리를 사용하지 않음.</li>
+          <li>그럼 왜 문제? pid가 정리되지 않은 채로 쌓여서 pid 고갈 문제 발생</li>
+          <li>cf) pid 최댓값 = <code class="language-plaintext highlighter-rouge">kernel.pid_max</code>
+</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="프로세스-우선순위">프로세스 우선순위</h2>
+
+<ul>
+  <li>PR, NI을 통해 확인</li>
+  <li>PR: priority. 스케줄러가 활용하는 실제 우선순위값. 값이 작을수록 우선순위 높다
+    <ul>
+      <li>유저 프로세스의 경우 <code class="language-plaintext highlighter-rouge">PR = 디폴트 우선순위+nice value</code>
+</li>
+    </ul>
+  </li>
+  <li>NI : nice value. 주로 우선순위를 높일때(값을 낮출때) 사용.</li>
+  <li>디폴트 우선순위 = 20</li>
+  <li>
+<code class="language-plaintext highlighter-rouge">nice -n -10</code> 와 같은 명령으로 우선순위를 낮출 수 있다.
+    <ul>
+      <li>이때 코어수에 따라 의도대로 안될 수도 있다.</li>
+      <li>예를 들어 2-core인 경우 A 프로세스를 B 프로세스보다 먼저 실행시키고 싶어서 A프로세스의 nice 값을 10낮춘다고 해서 B프로세스보다 A프로세스가 우선하진 않는다(A,B가 병렬로 실행되기 때문에). 싱글코어에서는 가능</li>
+    </ul>
+  </li>
+  <li>
+<code class="language-plaintext highlighter-rouge">renice</code> 등도 가능.</li>
+  <li>RT : Realtime
+    <ul>
+      <li>반드시 특정 시간 안에 종료되어야 하는 중요한 프로세스</li>
+      <li>ex) 커널에서 사용하는 데몬</li>
+      <li>사용자 프로세스 아님</li>
+      <li>RT 스케줄러가 따로 존재. CFS 스케줄러보다 먼저 실행됨</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li>
+    <p><a href="http://ebook.insightbook.co.kr/book/61">DevOps와 SE를 위한 리눅스 커널 이야기</a> 2장 내용을 요약 정리한 것입니다. <a href="https://jihooyim1.gitbooks.io/linuxbasic/content/contents/02.html">gitbook 링크</a></p>
+  </li>
+  <li>
+    <p><a href="https://jujupapa.tistory.com/37">https://jujupapa.tistory.com/37</a></p>
+  </li>
+</ul>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/tags/#devops" class="page__taxonomy-item" rel="tag">DevOps</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#linux" class="page__taxonomy-item" rel="tag">Linux</a>
+    
+    </span>
+  </p>
+
+
+
+
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-folder-open" aria-hidden="true"></i> Categories: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/categories/#linux" class="page__taxonomy-item" rel="tag">Linux</a>
+    
+    </span>
+  </p>
+
+
+        
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time datetime="2021-04-20T00:00:00+09:00">April 20, 2021</time></p>
+
+
+      </footer>
+
+      <section class="page__share">
+  
+    <h4 class="page__share-title">Share on</h4>
+  
+
+  <a href="https://twitter.com/intent/tweet?text=Linux+Top+%EB%AA%85%EB%A0%B9%EC%96%B4%20https%3A%2F%2Fdreamsh19.github.io%2Flinux%2FLinux-top-%25EB%25AA%2585%25EB%25A0%25B9%25EC%2596%25B4%2F" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fdreamsh19.github.io%2Flinux%2FLinux-top-%25EB%25AA%2585%25EB%25A0%25B9%25EC%2596%25B4%2F" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fdreamsh19.github.io%2Flinux%2FLinux-top-%25EB%25AA%2585%25EB%25A0%25B9%25EC%2596%25B4%2F" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
+
+      
+  <nav class="pagination">
+    
+      <a href="/go/Go-Concurrency/" class="pagination--pager" title="Go Concurrency
+">Previous</a>
+    
+    
+      <a href="/error/%EC%95%A0%ED%94%8C%EB%A6%AC%EC%BC%80%EC%9D%B4%EC%85%98-%EC%97%90%EB%9F%AC-%EC%BD%94%EB%93%9C-%EC%84%A4%EA%B3%84/" class="pagination--pager" title="애플리케이션 에러 코드 설계
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+      <div class="page__comments">
+  
+  
+      <h4 class="page__comments-title">Leave a comment</h4>
+      <section id="disqus_thread"></section>
+    
+</div>
+
+    
+  </article>
+
+  
+  
+</div>
+
+    </div>
+
+    
+      <div class="search-content">
+        <div class="search-content__inner-wrap">
+<form class="search-content__form" onkeydown="return event.key != 'Enter';">
+    <label class="sr-only" for="search">
+      Enter your search term...
+    </label>
+    <input type="search" id="search" class="search-input" tabindex="-1" placeholder="Enter your search term...">
+  </form>
+  <div id="results" class="results"></div>
+</div>
+
+      </div>
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+      <li><strong>Follow:</strong></li>
+    
+
+    
+      
+        
+      
+        
+      
+        
+          <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i> LinkedIn</a></li>
+        
+      
+    
+
+    <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+  </ul>
+</div>
+
+<div class="page__footer-copyright">© 2025 서버 개발자. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+<script src="/assets/js/lunr/lunr.min.js"></script>
+<script src="/assets/js/lunr/lunr-store.js"></script>
+<script src="/assets/js/lunr/lunr-en.js"></script>
+
+
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LM91QEFQ4D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-LM91QEFQ4D', { 'anonymize_ip': false});
+</script>
+
+
+
+
+
+
+    
+  <script>
+    var disqus_config = function () {
+      this.page.url = "https://dreamsh19.github.io/linux/Linux-top-%EB%AA%85%EB%A0%B9%EC%96%B4/";  /* Replace PAGE_URL with your page's canonical URL variable */
+      this.page.identifier = "/linux/Linux-top-명령어"; /* Replace PAGE_IDENTIFIER with your page's unique identifier variable */
+    };
+    (function() { /* DON'T EDIT BELOW THIS LINE */
+      var d = document, s = d.createElement('script');
+      s.src = 'https://dreamsh19-github-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', +new Date());
+      (d.head || d.body).appendChild(s);
+    })();
+  </script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript>
+
+
+  
+
+
+
+
+
+  </body>
+</html>

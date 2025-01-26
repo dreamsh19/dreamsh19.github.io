@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.21.0 by Michael Rose
+  Copyright 2013-2020 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+--><html lang="en" class="no-js">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>Git commit hash는 어떻게 만들어질까 - 기술을 기술하다</title>
+<meta name="description" content="이슈    개발을 하다보면 git rebase를 자주 사용하는데, rebase 할때 실제 반영되는 내용이 동일한데도 commit hash가 바뀌는 것을 보고, 커밋 시간이나 부모 커밋 등의 정보가 달라졌으니 hash값이 달라지는구나 정도로 어렴풋이 추측만 했다.   그렇다면 서로 다른 커밋을 “다르다”라고 판단하는 기준이 무엇일까가 궁금해졌고,   어렴풋이 추측만 하던, git에서의 id 체계인 commit hash가 어떻게 만들어지는지에 대해 살펴보았다.">
+
+
+  <meta name="author" content="ㅎㅅㅎ">
+  
+  <meta property="article:author" content="ㅎㅅㅎ">
+  
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="기술을 기술하다">
+<meta property="og:title" content="Git commit hash는 어떻게 만들어질까">
+<meta property="og:url" content="https://dreamsh19.github.io/git/Git-commit-hash%EB%8A%94-%EC%96%B4%EB%96%BB%EA%B2%8C-%EB%A7%8C%EB%93%A4%EC%96%B4%EC%A7%88%EA%B9%8C/">
+
+
+  <meta property="og:description" content="이슈    개발을 하다보면 git rebase를 자주 사용하는데, rebase 할때 실제 반영되는 내용이 동일한데도 commit hash가 바뀌는 것을 보고, 커밋 시간이나 부모 커밋 등의 정보가 달라졌으니 hash값이 달라지는구나 정도로 어렴풋이 추측만 했다.   그렇다면 서로 다른 커밋을 “다르다”라고 판단하는 기준이 무엇일까가 궁금해졌고,   어렴풋이 추측만 하던, git에서의 id 체계인 commit hash가 어떻게 만들어지는지에 대해 살펴보았다.">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2024-10-26T00:00:00+09:00">
+
+
+
+
+
+  
+
+  
+
+
+<link rel="canonical" href="https://dreamsh19.github.io/git/Git-commit-hash%EB%8A%94-%EC%96%B4%EB%96%BB%EA%B2%8C-%EB%A7%8C%EB%93%A4%EC%96%B4%EC%A7%88%EA%B9%8C/">
+
+
+
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    
+      "@type": "Person",
+      "name": "서버 개발자",
+      "url": "https://dreamsh19.github.io/"
+    
+  }
+</script>
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+<link href="/feed.xml" type="application/atom+xml" rel="alternate" title="기술을 기술하다 Feed">
+
+<!-- https://t.co/dKP3o1e -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script>
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<!--[if IE]>
+  <style>
+    /* old IE unsupported flexbox fixes */
+    .greedy-nav .site-title {
+      padding-right: 3em;
+    }
+    .greedy-nav button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+    }
+  </style>
+<![endif]-->
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single">
+    <nav class="skip-links">
+  <h2 class="screen-reader-text">Skip links</h2>
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    <!--[if lt IE 9]>
+<div class="notice--danger align-center" style="margin: 0;">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience.</div>
+<![endif]-->
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          기술을 기술하다
+          
+        </a>
+        <ul class="visible-links">
+<li class="masthead__menu-item">
+              <a href="/">Home</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/categories/">Categories</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/tags/">Tags</a>
+            </li>
+</ul>
+        
+        <button class="search__toggle" type="button">
+          <span class="visually-hidden">Toggle search</span>
+          <svg class="icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 15.99 16">
+            <path d="M15.5,13.12L13.19,10.8a1.69,1.69,0,0,0-1.28-.55l-0.06-.06A6.5,6.5,0,0,0,5.77,0,6.5,6.5,0,0,0,2.46,11.59a6.47,6.47,0,0,0,7.74.26l0.05,0.05a1.65,1.65,0,0,0,.5,1.24l2.38,2.38A1.68,1.68,0,0,0,15.5,13.12ZM6.4,2A4.41,4.41,0,1,1,2,6.4,4.43,4.43,0,0,1,6.4,2Z" transform="translate(-.01)"></path>
+          </svg>
+        </button>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+
+
+<div itemscope itemtype="https://schema.org/Person">
+
+  
+
+  <div class="author__content">
+    
+      <h3 class="author__name" itemprop="name">ㅎㅅㅎ</h3>
+    
+    
+      <div class="author__bio" itemprop="description">
+        <p>Backend Dev</p>
+
+      </div>
+    
+  </div>
+
+  <div class="author__urls-wrapper">
+    <button class="btn btn--inverse">Follow</button>
+    <ul class="author__urls social-icons">
+      
+        <li itemprop="homeLocation" itemscope itemtype="https://schema.org/Place">
+          <i class="fas fa-fw fa-map-marker-alt" aria-hidden="true"></i> <span itemprop="name">South Korea</span>
+        </li>
+      
+
+      
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+            <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i><span class="label">GitHub</span></a></li>
+          
+        
+          
+            <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span class="label">LinkedIn</span></a></li>
+          
+        
+          
+        
+      
+
+      
+
+      
+        <li>
+          <a href="mailto:dreamsh19@gmail.com">
+            <meta itemprop="email" content="dreamsh19@gmail.com">
+            <i class="fas fa-fw fa-envelope-square" aria-hidden="true"></i><span class="label">Email</span>
+          </a>
+        </li>
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      <!--
+  <li>
+    <a href="http://link-to-whatever-social-network.com/user/" itemprop="sameAs" rel="nofollow noopener noreferrer">
+      <i class="fas fa-fw" aria-hidden="true"></i> Custom Social Profile Link
+    </a>
+  </li>
+-->
+    </ul>
+  </div>
+</div>
+
+  
+  <a href="https://hits.seeyoufarm.com" style="display: none;">
+    <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fdreamsh19.github.io&count_bg=%2348AFB3&title_bg=%237D8B8E&icon=&icon_color=%23360E0E&title=hits&edge_flat=false">
+  </a>  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="Git commit hash는 어떻게 만들어질까">
+    <meta itemprop="description" content="이슈  개발을 하다보면 git rebase를 자주 사용하는데, rebase 할때 실제 반영되는 내용이 동일한데도 commit hash가 바뀌는 것을 보고, 커밋 시간이나 부모 커밋 등의 정보가 달라졌으니 hash값이 달라지는구나 정도로 어렴풋이 추측만 했다.  그렇다면 서로 다른 커밋을 “다르다”라고 판단하는 기준이 무엇일까가 궁금해졌고,  어렴풋이 추측만 하던, git에서의 id 체계인 commit hash가 어떻게 만들어지는지에 대해 살펴보았다.">
+    <meta itemprop="datePublished" content="2024-10-26T00:00:00+09:00">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">Git commit hash는 어떻게 만들어질까
+</h1>
+          
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right sticky">
+            <nav class="toc">
+              <header><h4 class="nav__title">
+<i class="fas fa-file-alt"></i> On this page</h4></header>
+              <ul class="toc__menu">
+<li><a href="#%EC%9D%B4%EC%8A%88">이슈</a></li>
+<li><a href="#%EA%B2%B0%EB%A1%A0">결론</a></li>
+<li><a href="#%ED%99%95%EC%9D%B8%EC%9D%84-%EC%9C%84%ED%95%9C-%EA%B0%84%EB%8B%A8%ED%95%9C-%EA%B5%AC%EC%84%B1">확인을 위한 간단한 구성</a></li>
+<li>
+<a href="#git-cat-file-commit-%EC%83%81%EC%84%B8">git cat-file commit 상세</a><ul>
+<li><a href="#tree">tree</a></li>
+<li><a href="#parent">parent</a></li>
+<li>
+<a href="#author-committer">author, committer</a><ul>
+<li><a href="#1-%EC%B4%88%EB%8B%A8%EC%9C%84-%EC%A0%95%EB%B0%80%EB%8F%84">1. 초단위 정밀도</a></li>
+<li><a href="#2-%ED%83%80%EC%9E%84%EC%A1%B4-%EC%A0%95%EB%B3%B4">2. 타임존 정보</a></li>
+</ul>
+</li>
+<li><a href="#commit-message">commit message</a></li>
+</ul>
+</li>
+<li><a href="#%ED%97%A4%EB%8D%94-%EC%A0%95%EB%B3%B4">헤더 정보</a></li>
+<li>
+<a href="#sha1-%ED%95%B4%EC%8B%B1">SHA1 해싱</a><ul><li><a href="#hash-%EC%B6%A9%EB%8F%8C%EC%9D%B4-%EB%AC%B8%EC%A0%9C%EA%B0%80-%EB%90%98%EB%8A%94-%EC%9D%B4%EC%9C%A0">Hash 충돌이 문제가 되는 이유</a></li></ul>
+</li>
+<li><a href="#%EC%9A%94%EC%95%BD">요약</a></li>
+<li><a href="#references">References</a></li>
+</ul>
+
+            </nav>
+          </aside>
+        
+        <h2 id="이슈">이슈</h2>
+<ul>
+  <li>개발을 하다보면 git rebase를 자주 사용하는데, rebase 할때 실제 반영되는 내용이 동일한데도 commit hash가 바뀌는 것을 보고, 커밋 시간이나 부모 커밋 등의 정보가 달라졌으니 hash값이 달라지는구나 정도로 어렴풋이 추측만 했다.</li>
+  <li>그렇다면 서로 다른 커밋을 “다르다”라고 판단하는 기준이 무엇일까가 궁금해졌고,</li>
+  <li>어렴풋이 추측만 하던, git에서의 id 체계인 commit hash가 어떻게 만들어지는지에 대해 살펴보았다.</li>
+</ul>
+
+<h2 id="결론">결론</h2>
+
+<p>결론부터 얘기하자면, 임의의 git repository에 진입해서 아래 명령어를 수행하면, 현재 위치한 HEAD의 commit hash를 재현해낼 수 있다.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">(</span><span class="nb">printf</span> <span class="s2">"commit %s</span><span class="se">\0</span><span class="s2">"</span> <span class="si">$(</span>git <span class="nt">--no-replace-objects</span> cat-file commit HEAD | <span class="nb">wc</span> <span class="nt">-c</span><span class="si">)</span><span class="p">;</span> git cat-file commit HEAD<span class="o">)</span> | <span class="nb">sha1sum</span>
+<span class="c"># 출처 : https://gist.github.com/masak/2415865#file-explanation-md</span>
+</code></pre></div></div>
+
+<p>위 명령어를 수행하고, <code class="language-plaintext highlighter-rouge">git show -s</code> 명령어를 통해 현재 commit hash를 확인해보면 동일한 것을 확인 할 수 있다.</p>
+
+<p>아래는 직접 확인해본 결과이다. 역시나 동일함을 확인할 수 있다.<br>
+<img src="https://github.com/user-attachments/assets/e1ccf805-c939-4292-8e05-0e09548fd7f2" alt="image"></p>
+
+<p>그렇다면, 위 명령어에 대해 하나씩 살펴보자.<br>
+우선 마지막의 sha1sum 명령어는 단순 해싱 함수이고, 본 글에서는 hash 함수의 input이 궁금한 것이므로 미뤄두자.</p>
+
+<p>눈에 띄는 것은 <code class="language-plaintext highlighter-rouge">git cat-file commit HEAD</code> 명령어가 결국 주요한 input으로 보인다. (앞의 printf 파트는 해당 명령어의 바이트수를 포맷팅하여 출력하는 정도이므로)</p>
+
+<p>그렇다면 <code class="language-plaintext highlighter-rouge">git cat-file commit HEAD</code> 명령어는 대체 어떤 내용을 담고 있는지 살펴보자.</p>
+
+<h2 id="확인을-위한-간단한-구성">확인을 위한 간단한 구성</h2>
+
+<p>살펴보기 전에 간단한 git repository를 아래와 같이 생성하여, 해당 repository 하에서 내용을 확인하였다.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">mkdir </span>git-hash <span class="o">&amp;&amp;</span> <span class="nb">cd </span>git-hash
+git init
+<span class="nb">touch </span>README.md
+git add <span class="nb">.</span> <span class="o">&amp;&amp;</span> git commit <span class="nt">-m</span> <span class="s2">"Intial commit"</span>
+<span class="nb">echo</span> <span class="s2">"Hello World"</span> <span class="o">&gt;&gt;</span> README.md
+git add <span class="nb">.</span> <span class="o">&amp;&amp;</span> git commit <span class="nt">-m</span> <span class="s2">"Add Hello World to README"</span>
+</code></pre></div></div>
+
+<h2 id="git-cat-file-commit-상세">git cat-file commit 상세</h2>
+
+<p>우선 git cat-file 명령어는 git의 object에 대한 세부정보를 출력해주는 명령어이다.<br>
+여기서 object란 git에서 내부적으로 리소스를 관리할때 사용하는 객체이며, commit도 object의 한 종류이다.<br>
+결국 <code class="language-plaintext highlighter-rouge">git cat-file commit HEAD</code> 명령어는 현재(HEAD) 커밋에 대한 세부정보를 출력해줘 정도의 명령어이다.</p>
+
+<p>실제로 명령어를 통해 출력한 결과는 아래와 같다.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>user@server ~/sources/git-hash]<span class="nv">$ </span>git cat-file commit HEAD
+tree db78f3594ec0683f5d857ef731df0d860f14f2b2
+parent c612c9316c74c3f7489135e18545a2082e5ebd0e
+author Seung-Hun Han &lt;dreamsh19@gmail.com&gt; 1730020485 +0900
+committer Seung-Hun Han &lt;dreamsh19@gmail.com&gt; 1730020485 +0900
+
+Add Hello World to README
+</code></pre></div></div>
+
+<p>크게 5개(tree, parent, author, committer, commit message)로 구성된 것을 확인할 수 있다. 각각에 대해 살펴보자.</p>
+
+<h3 id="tree">tree</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>tree db78f3594ec0683f5d857ef731df0d860f14f2b2
+</code></pre></div></div>
+
+<p>해당 커밋 상태에서의 모든 파일에 대한 스냅샷(으로 부터 추출된 hash값)이다.<br>
+참고로, git에서의 tree는 git 내부적으로 사용하는 자체 파일 시스템 정도로 이해할 수 있다. git에서 자체 파일 시스템이 필요한 이유는 버저닝에 특화되어 있어야하고, 특정 파일 시스템에 종속되지 않아야하는 등의 요구사항이 필요하기 때문이다.</p>
+
+<p>결국 파일의 내용(blob)이 변경되면 hash값이 바뀐다. 정도로 이해하면 될 것 같고, 커밋의 고유성을 결정할때 가장 직관적인 기준이다. 그리고 tree hash 외의 다른 4개의 항목들은 모두 commit 자체에 대한 메타데이터인 반면, 파일의 내용에 대한 항목은 tree hash가 유일하다.</p>
+
+<p>하지만 예상하겠지만, 파일의 내용만으로는 커밋의 고유성을 보장할 수 없다. (나머지 4개 항목이 필요한 이유이기도 하다.)</p>
+
+<p>간단한 예로, 커밋 A를 수행하고 바로 A를 revert하는 경우를 떠올려보면, 파일의 내용은 달라진게 없지만 2개의 추가적인 커밋이 발생했고, git에서는 이를 구별해야한다.<br>
+실제로 확인해보자. README에 “Mistakes” 문구를 추가했다가 곧바로 revert하고 git cat-file commit 명령어를 수행해보았다.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[user@server ~/sources/git-hash]<span class="nv">$ </span><span class="nb">echo</span> <span class="s2">"Mistakes"</span> <span class="o">&gt;&gt;</span> README.md
+[user@server ~/sources/git-hash]<span class="nv">$ </span>git add <span class="nb">.</span> <span class="o">&amp;&amp;</span> git commit <span class="nt">-m</span> <span class="s2">"Made a mistake"</span>
+<span class="o">[</span>main 1f002c2] Made a mistake
+ 1 file changed, 1 insertion<span class="o">(</span>+<span class="o">)</span>
+[user@server ~/sources/git-hash]<span class="nv">$ </span>git revert HEAD
+<span class="o">[</span>main 3b9a0c2] Revert <span class="s2">"Made a mistake"</span>
+ 1 file changed, 1 deletion<span class="o">(</span>-<span class="o">)</span>
+Revert <span class="s2">"Made a mistake"</span>
+
+This reverts commit 1f002c2bf3f8f779f73db79a88cb7575a77eab91.
+[user@server ~/sources/git-hash]<span class="nv">$ </span>git cat-file commit HEAD
+tree db78f3594ec0683f5d857ef731df0d860f14f2b2
+parent 1f002c2bf3f8f779f73db79a88cb7575a77eab91
+author Seung-Hun Han &lt;dreamsh19@gmail.com&gt; 1730022719 +0900
+committer Seung-Hun Han &lt;dreamsh19@gmail.com&gt; 1730022719 +0900
+
+Revert <span class="s2">"Made a mistake"</span>
+
+This reverts commit 1f002c2bf3f8f779f73db79a88cb7575a77eab91.
+</code></pre></div></div>
+
+<p>여기서 확인할 수 있는 것은, 2개의 커밋이 발생했음에도 마지막 명령어 결과에서 tree hash값은 <code class="language-plaintext highlighter-rouge">db78f35...</code>으로 동일한 것을 확인할 수 있다.</p>
+
+<h3 id="parent">parent</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>parent c612c9316c74c3f7489135e18545a2082e5ebd0e
+</code></pre></div></div>
+
+<p>부모 커밋의 hash값이다.<br>
+커밋의 parent 정보는 다른 커밋과의 관계를 정의하는 유일한 정보이기 때문에, 커밋의 고유성을 결정하기에 필수적인 정보이다.<br>
+실제로 같은 tree hash를 가지는 서로 다른 커밋이 있다고 하더라도, 부모 커밋이 다르다면 전혀 다른 커밋이 된다. 당장 위의 revert 예시에서도 동일한 tree hash지만 parent 정보가 다름으로 인해 구별할 수 있다.</p>
+
+<h3 id="author-committer">author, committer</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>author Seung-Hun Han &lt;dreamsh19@gmail.com&gt; 1730020485 +0900
+committer Seung-Hun Han &lt;dreamsh19@gmail.com&gt; 1730020485 +0900
+</code></pre></div></div>
+
+<p>author와 committer의 정보와 시간 정보가 담겨 있다.<br>
+(author와 committer의 차이에 대해서는 자세히 다루지 않겠다. 궁금하다면 <a href="https://git-scm.com/book/en/v2/Git-Basics-Viewing-the-Commit-History">Git - Viewing the Commit History</a> 를 참고하면 된다.)<br>
+git은 기본적으로 협업을 위한 프로그램이기 때문에 author, committer 정보가 중요할 수 밖에 없다. 같은 부모 커밋에서 같은 내용을 커밋하더라도 수행하는 사람이 다르다면, 서로 다른 커밋으로 취급한다.</p>
+
+<p>개인적으로 author와 commiter 정보에서 특이하다고 느낀 점은 두가지인데, 첫번째는 시간의 정밀도가 초단위까지밖에 없다는 것이고, 두번째는 타임존 정보를 포함하고 있다는 것이다.</p>
+
+<h4 id="1-초단위-정밀도">1. 초단위 정밀도</h4>
+<p>시간 정보는 Unix timestamp로 표현되어있는데, <code class="language-plaintext highlighter-rouge">1730020485</code>로 초단위 정밀도이다.<br>
+그러면 자연스럽게 “1초 내에 동일한 커밋을 두 번하면 어떻게 되는거지?” 라는 생각이 든다.<br>
+그래서 직접 해보았다. main을 부모 커밋으로 가지는 서로 다른 두개의 브랜치를 만들고 각 브랜치에서 똑같은 커밋을 1초 내로 수행해보았다.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">for </span>i <span class="k">in</span> <span class="o">{</span>1..2<span class="o">}</span><span class="p">;</span> <span class="k">do 
+	</span>git checkout main<span class="p">;</span>
+	git checkout <span class="nt">-b</span> branch-<span class="k">${</span><span class="nv">i</span><span class="k">}</span><span class="p">;</span>
+	<span class="nb">touch </span>file.tmp<span class="p">;</span>
+	git add <span class="nb">.</span> <span class="o">&amp;&amp;</span> git commit <span class="nt">-m</span> <span class="s2">"Create file.tmp"</span><span class="p">;</span> 
+<span class="k">done</span>
+</code></pre></div></div>
+
+<p>결과는 놀랍게도 동일한 커밋으로 취급되었다. (실제로 커밋은 두 번 발생했음에도)</p>
+
+<p><img src="https://github.com/user-attachments/assets/4a9a110b-1bc8-4368-b6a0-60d1a106755c" alt="image"></p>
+
+<p>그리고 위 명령어 마지막에 <code class="language-plaintext highlighter-rouge">sleep 1;</code> 을 추가하여 확인해보니 서로 다른 커밋으로 취급되었다.</p>
+
+<p>그리고 초단위 정밀도를 가지는 걸 이상하게 생각한 것은 나 뿐만이 아닌듯 하다.<br>
+<a href="https://stackoverflow.com/a/28238046">What is the resolution of Git’s commit-date or author-date timestamps? - Stack Overflow</a><br>
+위 링크에서 보면, 실제로 같은 커밋을 1초 내에 두번하면 하나의 커밋으로 취급된다는 내용이 있다.</p>
+
+<h4 id="2-타임존-정보">2. 타임존 정보</h4>
+
+<p>위에서 살펴보았듯이 시간 정보는 Unix timestamp로 저장되고, Unix timestamp는 타임존에 독립적인데, 타임존 정보가 포함된 것이 의아했다.<br>
+처음에는 “타임존 정보가 굳이 포함될 필요가 있을까?”라는 관점에서 의아했으나, 애초에 커밋 정보에 타임존 정보를 포함하고 있으니, 굳이 제외하지 않았다 정도의 관점으로 받아들이면 이상할 것도 없을 듯하다.<br>
+물론, 동일한 커밋을 같은 순간에(1초 내) 서로 다른 타임존에서 수행하면 다른 커밋 hash가 도출되고, 서로 다른 커밋으로 간주된다.(아래는 실험 결과)</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">for </span>i <span class="k">in</span> <span class="o">{</span>3..4<span class="o">}</span><span class="p">;</span> <span class="k">do 
+	</span>git checkout main<span class="p">;</span>
+	git checkout <span class="nt">-b</span> branch-<span class="k">${</span><span class="nv">i</span><span class="k">}</span><span class="p">;</span>
+	<span class="nb">touch </span>file.tmp<span class="p">;</span>
+	git add .<span class="p">;</span>
+	<span class="nv">GIT_COMMITTER_DATE</span><span class="o">=</span><span class="s2">"</span><span class="si">$(</span><span class="nv">TZ</span><span class="o">=</span>UTC+<span class="k">${</span><span class="nv">i</span><span class="k">}</span> <span class="nb">date</span> <span class="nt">-R</span><span class="si">)</span><span class="s2">"</span> git commit <span class="nt">-m</span> <span class="s2">"Create file.tmp"</span><span class="p">;</span>
+<span class="k">done</span>
+</code></pre></div></div>
+
+<p><img src="https://github.com/user-attachments/assets/99329a35-b19b-451e-8a7e-488e436a785a" alt="image"></p>
+
+<h3 id="commit-message">commit message</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Add Hello World to README
+</code></pre></div></div>
+
+<p>커밋의 “이름” 정도라고 보면, 직관적으로는 커밋의 고유성을 위한 key로 채택함에 있어서 큰 무리가 없을 듯 하다.</p>
+
+<p>다만, commit message를 포함하는데 있어서 개인적인 생각을 덧붙여보자면,<br>
+위의 네 가지 항목들은 커밋을 했을때 git에 의해 자동으로 결정되는 것들이지, “개발자가 명시적으로” 커밋의 고유성을 위해 지정할 수 있는 항목들은 아니다. (커밋 시간 등을 조정하면 할 수야 있지만 시간을 조정해서 고유성을 확보하는 것이 자연스럽진 않다고 생각이 된다.)<br>
+따라서 commit message는 개발자가 명시적으로 커밋의 고유성을 부여하기 위한 수단으로 볼 수 있다.<br>
+정확한 비유는 아니지만 일란성 쌍둥이지만 이름으로 구별할수 있게 하겠다.. 정도로 생각했다. (일란성 쌍둥이지만 태어난 시간으로 구별하는 건 자연스럽지 않으니..)</p>
+
+<h2 id="헤더-정보">헤더 정보</h2>
+
+<p>위에서 <code class="language-plaintext highlighter-rouge">git cat-file commit HEAD</code> 명령어에 대해서는 자세히 살펴보았고, 이제 commit의 고유성을 결정하는 5가지 요소에 대해서는 모두 알게 되었다.<br>
+그렇다면 글 도입부 <code class="language-plaintext highlighter-rouge">printf</code> 파트에서 보면 “commit 바이트수\0”를 포함하고 있는데, 이 정보는 무엇일까?</p>
+
+<p>commit도 object 중 하나라는 점에서 눈치챘을 수도 있지만,<br>
+사실 git은 모든 것을 object 라는 개념으로 관리하고, 이 object의 id 체계로 hash를 활용하고 있다. commit hash도 이 중 하나일 뿐이다. (위에서 tree가 hash 값을 가지는 것도 같은 이유이다.)<br>
+그리고 object의 id를 생성할때 다음과 같이 일관된 형태로 해싱 함수의 input을 구성한다.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;type&gt; &lt;size&gt;\0&lt;content&gt;
+</code></pre></div></div>
+
+<p>이때 <code class="language-plaintext highlighter-rouge">&lt;content&gt;</code>를 제외한 <code class="language-plaintext highlighter-rouge">&lt;type&gt; &lt;size&gt;\0</code> 부분을 git에서는 헤더라고 한다.</p>
+
+<p>실제 git의 소스 코드 <a href="https://github.com/git/git/blob/v2.47.0/object-file.c#L1140-L1155">git/object-file.c at v2.47.0 · git/git · GitHub</a>를 살펴보면 아래와 같은 코드로 헤더를 생성함을 확인할 수 있다.<br>
+(아래는 2.47.0 버전 상의 소스 코드이나, 이전 버전에서도 코드의 형태는 조금씩 다르지만 동일한 로직을 가진다.)<br>
+<img src="https://github.com/user-attachments/assets/fd51472a-20d5-46a6-b032-e6271480e061" alt="image"></p>
+
+<p>결국 <code class="language-plaintext highlighter-rouge">&lt;type&gt; &lt;size&gt;</code>의 형태로 포맷팅하고, 마지막의 +1을 통해 null character를 할당하는 로직이다.<br>
+여기서의 type은 object의 타입이며 글의 도입부에 <code class="language-plaintext highlighter-rouge">commit</code>이라는 고정 문자열이 입력된 것도 <code class="language-plaintext highlighter-rouge">commit</code> 타입임을 명시하는 것이다.<br>
+그리고 size는 content의 바이트 수이다. 사실 content에 종속된 정보라 불필요한 정보라고 생각될 수 있지만, 파일 시스템 상의 오류로 content 상의 불일치가 발생한 경우, 이를 탐지하기 위한 장치이다.</p>
+
+<h2 id="sha1-해싱">SHA1 해싱</h2>
+
+<p>여기까지 하면, hash 함수의 input에 대해서는 모두 살펴보았고, 결국 해당 input에 SHA1 해싱을 통해 최종적인 hash값을 도출해낸다.<br>
+그런데 SHA1 알고리즘은 컴퓨팅 파워의 증가로, 보안 취약점을 갖고 있는 알고리즘이 되어버렸고, 해시 충돌로 인한 위험성이 있는 것으로 밝혀졌다.</p>
+
+<p>Git에서도 이를 인지하고 있고, 더 안전한 SHA256으로의 전환을 점진적으로 추진한다고 한다.<br>
+그리고 기존 SHA1 시스템에서의 해시 충돌 문제를 방지하기 위해 Github에서는 해시 충돌이 발생한 경우 이를 탐지하고 실패처리하는 것을 이미 적용하고 있다. 실제로 Git 프로젝트를 보면 해시 충돌 방지에 대한 <a href="https://github.com/cr-marcstevens/sha1collisiondetection/">소스</a>를 submodule로 관리하고 있음을 확인할 수 있다.</p>
+
+<h3 id="hash-충돌이-문제가-되는-이유">Hash 충돌이 문제가 되는 이유</h3>
+
+<p>앞서 언급했듯이, git에서 hash값은 곧 id이다. id 체계는 유니크함을 보장하는 것이 필수적이나, 해시 충돌이 발생한다면 유니크함이 보장되지 않게 된다.</p>
+
+<p>단적인 예로, 파일 A의 해시값이 abcde라고 하고. 악의적인 사용자가 abcde의 해시값을 도출해내는 다른 파일 B를 찾아낸 상황을 가정하자. 악의적인 사용자는 B 기반의 코드로 문제가 없음을 증명한 후 main 브랜치에 머지를 하려고 하면, git은 A와 B가 다르다는 걸 인지하지 못하게 된다. 결국 별 문제 없이 코드가 머지될 수 있고, 최종적으로 저장소에는 머지가 됐음에도 여전히 파일 A로 남아있게 되고, 동작하지 않는 전혀 다른 코드가 되어버린다.</p>
+
+<p>물론, 아주 단적인 예일 뿐이고, 애초에 id 체계의 근간을 흔들 수 있기 때문에 많은 문제가 발생할 수 있다.</p>
+
+<h2 id="요약">요약</h2>
+
+<p>내용이 길었지만 결국 commit hash 만드는 과정을 요약하면 아래와 같다.</p>
+
+<ul>
+  <li>git의 commit의 hash는 5가지 요소(파일 내용의 스냅샷, 부모 커밋, author, committer 정보, 커밋 메시지)에 의해 결정된다.</li>
+  <li>그리고 추가적인 헤더 정보(object 타입, 바이트 수)를 추가하며, 이는 commit에 한정된 것은 아니고 object 모두에 해당된다.</li>
+  <li>위의 결과에 SHA1 해싱을 적용하여 최종적인 값으로 채택한다.</li>
+</ul>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li><a href="https://gist.github.com/masak/2415865">How is git commit sha1 formed · GitHub</a></li>
+  <li><a href="https://git-scm.com/docs/git-cat-file">Git - git-cat-file Documentation</a></li>
+  <li><a href="https://github.com/git/git">GitHub - git/git: Git Source Code Mirror - This is a publish-only repository but pull requests can be turned into patches to the mailing list via GitGitGadget (https://gitgitgadget.github.io/). Please follow Documentation/SubmittingPatches procedure for any of your improvements.</a></li>
+  <li><a href="https://git-scm.com/book/en/v2/Git-Basics-Viewing-the-Commit-History">Git - Viewing the Commit History</a></li>
+  <li><a href="https://stackoverflow.com/a/28238046">What is the resolution of Git’s commit-date or author-date timestamps? - Stack Overflow</a></li>
+  <li><a href="https://stackoverflow.com/a/70266188">Why do git objects include a length and a delimiter as metadata? - Stack Overflow</a></li>
+  <li><a href="https://noah-ios.dev/how-to-generate-commit-id/">Git의 commit id는 어떻게 생성될까?</a></li>
+  <li><a href="https://github.blog/news-insights/company-news/sha-1-collision-detection-on-github-com/">SHA-1 collision detection on GitHub.com - The GitHub Blog</a></li>
+  <li><a href="https://thenewstack.io/git-transitioning-away-from-the-aging-sha-1-hash/">Git Transitioning Away from the Aging SHA-1 Hash - The New Stack</a></li>
+</ul>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/tags/#git" class="page__taxonomy-item" rel="tag">Git</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#hash" class="page__taxonomy-item" rel="tag">Hash</a>
+    
+    </span>
+  </p>
+
+
+
+
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-folder-open" aria-hidden="true"></i> Categories: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/categories/#git" class="page__taxonomy-item" rel="tag">Git</a>
+    
+    </span>
+  </p>
+
+
+        
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time datetime="2024-10-26T00:00:00+09:00">October 26, 2024</time></p>
+
+
+      </footer>
+
+      <section class="page__share">
+  
+    <h4 class="page__share-title">Share on</h4>
+  
+
+  <a href="https://twitter.com/intent/tweet?text=Git+commit+hash%EB%8A%94+%EC%96%B4%EB%96%BB%EA%B2%8C+%EB%A7%8C%EB%93%A4%EC%96%B4%EC%A7%88%EA%B9%8C%20https%3A%2F%2Fdreamsh19.github.io%2Fgit%2FGit-commit-hash%25EB%258A%2594-%25EC%2596%25B4%25EB%2596%25BB%25EA%25B2%258C-%25EB%25A7%258C%25EB%2593%25A4%25EC%2596%25B4%25EC%25A7%2588%25EA%25B9%258C%2F" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fdreamsh19.github.io%2Fgit%2FGit-commit-hash%25EB%258A%2594-%25EC%2596%25B4%25EB%2596%25BB%25EA%25B2%258C-%25EB%25A7%258C%25EB%2593%25A4%25EC%2596%25B4%25EC%25A7%2588%25EA%25B9%258C%2F" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fdreamsh19.github.io%2Fgit%2FGit-commit-hash%25EB%258A%2594-%25EC%2596%25B4%25EB%2596%25BB%25EA%25B2%258C-%25EB%25A7%258C%25EB%2593%25A4%25EC%2596%25B4%25EC%25A7%2588%25EA%25B9%258C%2F" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
+
+      
+  <nav class="pagination">
+    
+      <a href="/airflow/Airflow-DockerOperator%EC%9D%98-Private-registry-%EC%9E%A5%EC%95%A0%EC%A0%84%ED%8C%8C-%EB%B0%A9%EC%A7%80(LazyLoginDockerOperator-%EA%B5%AC%ED%98%84%EA%B8%B0)/" class="pagination--pager" title="Airflow DockerOperator의 Private registry 장애전파 방지(LazyLoginDockerOperator 구현기)
+">Previous</a>
+    
+    
+      <a href="/async/%EB%B9%84%EB%8F%99%EA%B8%B0-%EB%85%BC%EB%B8%94%EB%9D%BD%ED%82%B9%EC%97%90-%EB%8C%80%ED%95%9C-%EC%9D%B4%ED%95%B4/" class="pagination--pager" title="비동기 논블락킹에 대한 이해
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+      <div class="page__comments">
+  
+  
+      <h4 class="page__comments-title">Leave a comment</h4>
+      <section id="disqus_thread"></section>
+    
+</div>
+
+    
+  </article>
+
+  
+  
+</div>
+
+    </div>
+
+    
+      <div class="search-content">
+        <div class="search-content__inner-wrap">
+<form class="search-content__form" onkeydown="return event.key != 'Enter';">
+    <label class="sr-only" for="search">
+      Enter your search term...
+    </label>
+    <input type="search" id="search" class="search-input" tabindex="-1" placeholder="Enter your search term...">
+  </form>
+  <div id="results" class="results"></div>
+</div>
+
+      </div>
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+      <li><strong>Follow:</strong></li>
+    
+
+    
+      
+        
+      
+        
+      
+        
+          <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i> LinkedIn</a></li>
+        
+      
+    
+
+    <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+  </ul>
+</div>
+
+<div class="page__footer-copyright">© 2025 서버 개발자. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+<script src="/assets/js/lunr/lunr.min.js"></script>
+<script src="/assets/js/lunr/lunr-store.js"></script>
+<script src="/assets/js/lunr/lunr-en.js"></script>
+
+
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LM91QEFQ4D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-LM91QEFQ4D', { 'anonymize_ip': false});
+</script>
+
+
+
+
+
+
+    
+  <script>
+    var disqus_config = function () {
+      this.page.url = "https://dreamsh19.github.io/git/Git-commit-hash%EB%8A%94-%EC%96%B4%EB%96%BB%EA%B2%8C-%EB%A7%8C%EB%93%A4%EC%96%B4%EC%A7%88%EA%B9%8C/";  /* Replace PAGE_URL with your page's canonical URL variable */
+      this.page.identifier = "/git/Git-commit-hash는-어떻게-만들어질까"; /* Replace PAGE_IDENTIFIER with your page's unique identifier variable */
+    };
+    (function() { /* DON'T EDIT BELOW THIS LINE */
+      var d = document, s = d.createElement('script');
+      s.src = 'https://dreamsh19-github-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', +new Date());
+      (d.head || d.body).appendChild(s);
+    })();
+  </script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript>
+
+
+  
+
+
+
+
+
+  </body>
+</html>

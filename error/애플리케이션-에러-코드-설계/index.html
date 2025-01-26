@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.21.0 by Michael Rose
+  Copyright 2013-2020 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+--><html lang="en" class="no-js">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>애플리케이션 에러 코드 설계 - 기술을 기술하다</title>
+<meta name="description" content="이슈">
+
+
+  <meta name="author" content="ㅎㅅㅎ">
+  
+  <meta property="article:author" content="ㅎㅅㅎ">
+  
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="기술을 기술하다">
+<meta property="og:title" content="애플리케이션 에러 코드 설계">
+<meta property="og:url" content="https://dreamsh19.github.io/error/%EC%95%A0%ED%94%8C%EB%A6%AC%EC%BC%80%EC%9D%B4%EC%85%98-%EC%97%90%EB%9F%AC-%EC%BD%94%EB%93%9C-%EC%84%A4%EA%B3%84/">
+
+
+  <meta property="og:description" content="이슈">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2021-04-22T00:00:00+09:00">
+
+
+
+
+
+  
+
+  
+
+
+<link rel="canonical" href="https://dreamsh19.github.io/error/%EC%95%A0%ED%94%8C%EB%A6%AC%EC%BC%80%EC%9D%B4%EC%85%98-%EC%97%90%EB%9F%AC-%EC%BD%94%EB%93%9C-%EC%84%A4%EA%B3%84/">
+
+
+
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    
+      "@type": "Person",
+      "name": "서버 개발자",
+      "url": "https://dreamsh19.github.io/"
+    
+  }
+</script>
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+<link href="/feed.xml" type="application/atom+xml" rel="alternate" title="기술을 기술하다 Feed">
+
+<!-- https://t.co/dKP3o1e -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script>
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<!--[if IE]>
+  <style>
+    /* old IE unsupported flexbox fixes */
+    .greedy-nav .site-title {
+      padding-right: 3em;
+    }
+    .greedy-nav button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+    }
+  </style>
+<![endif]-->
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single">
+    <nav class="skip-links">
+  <h2 class="screen-reader-text">Skip links</h2>
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    <!--[if lt IE 9]>
+<div class="notice--danger align-center" style="margin: 0;">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience.</div>
+<![endif]-->
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          기술을 기술하다
+          
+        </a>
+        <ul class="visible-links">
+<li class="masthead__menu-item">
+              <a href="/">Home</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/categories/">Categories</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/tags/">Tags</a>
+            </li>
+</ul>
+        
+        <button class="search__toggle" type="button">
+          <span class="visually-hidden">Toggle search</span>
+          <svg class="icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 15.99 16">
+            <path d="M15.5,13.12L13.19,10.8a1.69,1.69,0,0,0-1.28-.55l-0.06-.06A6.5,6.5,0,0,0,5.77,0,6.5,6.5,0,0,0,2.46,11.59a6.47,6.47,0,0,0,7.74.26l0.05,0.05a1.65,1.65,0,0,0,.5,1.24l2.38,2.38A1.68,1.68,0,0,0,15.5,13.12ZM6.4,2A4.41,4.41,0,1,1,2,6.4,4.43,4.43,0,0,1,6.4,2Z" transform="translate(-.01)"></path>
+          </svg>
+        </button>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+
+
+<div itemscope itemtype="https://schema.org/Person">
+
+  
+
+  <div class="author__content">
+    
+      <h3 class="author__name" itemprop="name">ㅎㅅㅎ</h3>
+    
+    
+      <div class="author__bio" itemprop="description">
+        <p>Backend Dev</p>
+
+      </div>
+    
+  </div>
+
+  <div class="author__urls-wrapper">
+    <button class="btn btn--inverse">Follow</button>
+    <ul class="author__urls social-icons">
+      
+        <li itemprop="homeLocation" itemscope itemtype="https://schema.org/Place">
+          <i class="fas fa-fw fa-map-marker-alt" aria-hidden="true"></i> <span itemprop="name">South Korea</span>
+        </li>
+      
+
+      
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+            <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i><span class="label">GitHub</span></a></li>
+          
+        
+          
+            <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span class="label">LinkedIn</span></a></li>
+          
+        
+          
+        
+      
+
+      
+
+      
+        <li>
+          <a href="mailto:dreamsh19@gmail.com">
+            <meta itemprop="email" content="dreamsh19@gmail.com">
+            <i class="fas fa-fw fa-envelope-square" aria-hidden="true"></i><span class="label">Email</span>
+          </a>
+        </li>
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      <!--
+  <li>
+    <a href="http://link-to-whatever-social-network.com/user/" itemprop="sameAs" rel="nofollow noopener noreferrer">
+      <i class="fas fa-fw" aria-hidden="true"></i> Custom Social Profile Link
+    </a>
+  </li>
+-->
+    </ul>
+  </div>
+</div>
+
+  
+  <a href="https://hits.seeyoufarm.com" style="display: none;">
+    <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fdreamsh19.github.io&count_bg=%2348AFB3&title_bg=%237D8B8E&icon=&icon_color=%23360E0E&title=hits&edge_flat=false">
+  </a>  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="애플리케이션 에러 코드 설계">
+    <meta itemprop="description" content="이슈">
+    <meta itemprop="datePublished" content="2021-04-22T00:00:00+09:00">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">애플리케이션 에러 코드 설계
+</h1>
+          
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right sticky">
+            <nav class="toc">
+              <header><h4 class="nav__title">
+<i class="fas fa-file-alt"></i> On this page</h4></header>
+              <ul class="toc__menu">
+<li><a href="#%EC%9D%B4%EC%8A%88">이슈</a></li>
+<li><a href="#%EC%A2%8B%EC%9D%80-%EC%95%A0%ED%94%8C%EB%A6%AC%EC%BC%80%EC%9D%B4%EC%85%98-%EB%A0%88%EB%B2%A8-%EC%97%90%EB%9F%AC-%EB%94%94%EC%9E%90%EC%9D%B8-%ED%8C%A8%ED%84%B4">좋은 애플리케이션 레벨 에러 디자인 패턴</a></li>
+<li>
+<a href="#%EC%97%AC%EB%9F%AC%EA%B0%80%EC%A7%80-%EC%98%88%EC%8B%9C">여러가지 예시</a><ul>
+<li><a href="#1-ietf-%ED%91%9C%EC%A4%80">1. IETF 표준</a></li>
+<li><a href="#2-%EA%B4%80%EB%A0%A8-%EB%8F%84%ED%81%90%EB%A8%BC%ED%8A%B8-link-%ED%8F%AC%ED%95%A8">2. 관련 도큐먼트 Link 포함</a></li>
+<li><a href="#3-trace-id-%ED%8F%AC%ED%95%A8">3. Trace id 포함</a></li>
+</ul>
+</li>
+<li><a href="#references">References</a></li>
+</ul>
+
+            </nav>
+          </aside>
+        
+        <h2 id="이슈">이슈</h2>
+
+<ul>
+  <li>http status code와 분리된 애플리케이션 레벨의 에러코드가 필요</li>
+  <li>예를 들어, http status code 500 에러 발생 시 애플리케이션 내부적으로 어떤 에러가 발생했는지 http status code만 보고 파악하기 어렵기 때문에</li>
+  <li>애플리케이션 에러의 형식을 정의하여 관리를 용이하게 하기 위해서도 필요</li>
+  <li>End-user보다는 개발자의 트러블 슈팅을 위한 것</li>
+  <li>Application level 에러 코드에 대해서는 정확히 표준이 없어서 애플리케이션마다 구조가 상이</li>
+</ul>
+
+<h2 id="좋은-애플리케이션-레벨-에러-디자인-패턴">좋은 애플리케이션 레벨 에러 디자인 패턴</h2>
+
+<ul>
+  <li>에러상황에 맞는 적절한 HTTP status code를 리턴하는 데 우선 집중할 것.
+    <ul>
+      <li>애플리케이션 레벨 에러는 하나의 HTTP status code 안에서 세부적으로 에러를 구분하기 위한 목적이므로</li>
+    </ul>
+  </li>
+  <li>
+<strong>HTTP status code와 별개로 Response body를 활용한다.</strong>
+    <ul>
+      <li>애플리케이션 레벨 코드로 HTTP status code를 혼용해서 쓰지 않는다.</li>
+    </ul>
+  </li>
+  <li>하나의 애플리케이션 레벨 코드는 하나의 HTTP status code에만 종속되도록 한다. (M:N이 되지 않도록)</li>
+  <li>단순 에러코드만 리턴하지 않고 human-readable한 정보를 포함하도록 한다</li>
+</ul>
+
+<p><img src="https://raw.githubusercontent.com/dreamsh19/dreamsh19.github.io/master/assets/image/image-20210422143359681.png" alt="image-20210422143359681"></p>
+
+<ul>
+  <li>에러코드는 꼭 Integer type일 필요는 없다.
+    <ul>
+      <li>알파벳을 포함할수도 있고, error code라는 enumeration을 정의하여 활용할 수도 있다</li>
+    </ul>
+  </li>
+  <li>
+<strong>운영 환경에서는 보안에 유의할 것</strong>
+    <ul>
+      <li>운영 시 일반적인 서비스 구조에서는 에러 스택정보를 API 에러 메세지에 포함 시키지 않는 것이 바람직 하다. 옵션에 따라 dev 모드등으로 기동시, REST API의 에러 응답 메세지에 에러 스택 정보를 포함해서 리턴하도록 하면, 디버깅에 매우 유용하게 사용할 수 있다.</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="여러가지-예시">여러가지 예시</h2>
+
+<h3 id="1-ietf-표준">1. IETF 표준</h3>
+
+<ul>
+  <li>REST API의 에러 핸들링의 표준화를 위해서 <a href="https://tools.ietf.org/html/rfc7807">RFC 7807</a>에서 <strong>제시</strong>한 에러핸들링 일반 구조.
+    <ul>
+      <li>제시만 했을 뿐 표준화가 되진 않았다.</li>
+    </ul>
+  </li>
+  <li>총 5개의 필드로 구성
+    <ol>
+      <li>type : 세부 에러 코드. (꼭 숫자일 필요는 없음)</li>
+      <li>title : 에러에 대한 간략한 설명</li>
+      <li>status(optional) : HTTP response code</li>
+      <li>detail : 에러에 대한 자세한 설명</li>
+      <li>instance : 에러 발생 근원지 URI</li>
+    </ol>
+  </li>
+  <li>예시</li>
+</ul>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/errors/incorrect-user-pass"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"title"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Incorrect username or password."</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"status"</span><span class="p">:</span><span class="w"> </span><span class="mi">401</span><span class="p">,</span><span class="w"> 
+    </span><span class="nl">"detail"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Authentication failed due to incorrect username or password."</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"instance"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/login/log/abc123"</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+<p><br><br>
+<br></p>
+
+<h3 id="2-관련-도큐먼트-link-포함">2. 관련 도큐먼트 Link 포함</h3>
+
+<ul>
+  <li>에러 코드 번호와 해당 에러 코드 번호에 대한 Error dictionary link를 제공하는 방법
+    <ul>
+      <li>이를 위해서는 Error dictionary의 관리가 선행되어야함</li>
+    </ul>
+  </li>
+  <li>Twillo, Oracle 등
+    <ul>
+      <li>Oracle 도큐먼트 예시 : <a href="https://docs.oracle.com/cd/E24329_01/doc.1211/e26117/chapter_bea_messages.htm#sthref7">https://docs.oracle.com/cd/E24329_01/doc.1211/e26117/chapter_bea_messages.htm#sthref7</a>
+</li>
+      <li>Amazon SES API 예시 : <a href="https://docs.aws.amazon.com/ses/latest/DeveloperGuide/using-ses-api-error-codes.html">https://docs.aws.amazon.com/ses/latest/DeveloperGuide/using-ses-api-error-codes.html</a>
+</li>
+    </ul>
+  </li>
+  <li>예시</li>
+</ul>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"status"</span><span class="p">:</span><span class="s2">"401"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"message"</span><span class="p">:</span><span class="s2">"Authenticate"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"code"</span><span class="p">:</span><span class="s2">"200003"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"more info"</span><span class="p">:</span><span class="s2">"http://www.twillo.com/docs/errors/20003"</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+<p><br><br>
+<br></p>
+<h3 id="3-trace-id-포함">3. Trace id 포함</h3>
+
+<ul>
+  <li>애플리케이션에서 로깅에 사용한 trace id를 error response body안에 담고 후에 트러블슈팅할 때 해당 아이디를 로깅 시스템에서 조회할 수 있도록한다.</li>
+  <li>직접적인 에러 정보를 노출하지 않기 때문에 보안에 유리</li>
+  <li>Facebook Graph API의 <code class="language-plaintext highlighter-rouge">fbtrace_id</code>
+    <div class="language-json highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"message"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Missing redirect_uri parameter."</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"OAuthException"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"code"</span><span class="p">:</span><span class="w"> </span><span class="mi">191</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"fbtrace_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"AWswcVwbcqfgrSgjG80MtqJ"</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div>    </div>
+  </li>
+</ul>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li><a href="https://www.baeldung.com/rest-api-error-handling-best-practices">https://www.baeldung.com/rest-api-error-handling-best-practices</a></li>
+  <li><a href="https://sanghaklee.tistory.com/57">https://sanghaklee.tistory.com/57</a></li>
+  <li><a href="https://softwareengineering.stackexchange.com/questions/209693/best-practices-to-create-error-codes-pattern-for-an-enterprise-project-in-c">https://softwareengineering.stackexchange.com/questions/209693/best-practices-to-create-error-codes-pattern-for-an-enterprise-project-in-c</a></li>
+  <li><a href="https://developers.facebook.com/docs/graph-api/using-graph-api/error-handling">https://developers.facebook.com/docs/graph-api/using-graph-api/error-handling</a></li>
+  <li><a href="https://docs.aws.amazon.com/ses/latest/DeveloperGuide/using-ses-api-error-codes.html">https://docs.aws.amazon.com/ses/latest/DeveloperGuide/using-ses-api-error-codes.html</a></li>
+  <li><a href="https://stackoverflow.com/questions/51317619/error-code-pattern-for-api">https://stackoverflow.com/questions/51317619/error-code-pattern-for-api</a></li>
+  <li><a href="https://bcho.tistory.com/954">https://bcho.tistory.com/954</a></li>
+</ul>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/tags/#application" class="page__taxonomy-item" rel="tag">Application</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#error-code" class="page__taxonomy-item" rel="tag">Error code</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#error" class="page__taxonomy-item" rel="tag">Error</a>
+    
+    </span>
+  </p>
+
+
+
+
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-folder-open" aria-hidden="true"></i> Categories: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/categories/#error" class="page__taxonomy-item" rel="tag">Error</a>
+    
+    </span>
+  </p>
+
+
+        
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time datetime="2021-04-22T00:00:00+09:00">April 22, 2021</time></p>
+
+
+      </footer>
+
+      <section class="page__share">
+  
+    <h4 class="page__share-title">Share on</h4>
+  
+
+  <a href="https://twitter.com/intent/tweet?text=%EC%95%A0%ED%94%8C%EB%A6%AC%EC%BC%80%EC%9D%B4%EC%85%98+%EC%97%90%EB%9F%AC+%EC%BD%94%EB%93%9C+%EC%84%A4%EA%B3%84%20https%3A%2F%2Fdreamsh19.github.io%2Ferror%2F%25EC%2595%25A0%25ED%2594%258C%25EB%25A6%25AC%25EC%25BC%2580%25EC%259D%25B4%25EC%2585%2598-%25EC%2597%2590%25EB%259F%25AC-%25EC%25BD%2594%25EB%2593%259C-%25EC%2584%25A4%25EA%25B3%2584%2F" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fdreamsh19.github.io%2Ferror%2F%25EC%2595%25A0%25ED%2594%258C%25EB%25A6%25AC%25EC%25BC%2580%25EC%259D%25B4%25EC%2585%2598-%25EC%2597%2590%25EB%259F%25AC-%25EC%25BD%2594%25EB%2593%259C-%25EC%2584%25A4%25EA%25B3%2584%2F" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fdreamsh19.github.io%2Ferror%2F%25EC%2595%25A0%25ED%2594%258C%25EB%25A6%25AC%25EC%25BC%2580%25EC%259D%25B4%25EC%2585%2598-%25EC%2597%2590%25EB%259F%25AC-%25EC%25BD%2594%25EB%2593%259C-%25EC%2584%25A4%25EA%25B3%2584%2F" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
+
+      
+  <nav class="pagination">
+    
+      <a href="/linux/Linux-top-%EB%AA%85%EB%A0%B9%EC%96%B4/" class="pagination--pager" title="Linux Top 명령어
+">Previous</a>
+    
+    
+      <a href="/nginx/Nginx-414-Request-URI-Too-Large/" class="pagination--pager" title="Nginx 414 Request Uri Too Large
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+      <div class="page__comments">
+  
+  
+      <h4 class="page__comments-title">Leave a comment</h4>
+      <section id="disqus_thread"></section>
+    
+</div>
+
+    
+  </article>
+
+  
+  
+</div>
+
+    </div>
+
+    
+      <div class="search-content">
+        <div class="search-content__inner-wrap">
+<form class="search-content__form" onkeydown="return event.key != 'Enter';">
+    <label class="sr-only" for="search">
+      Enter your search term...
+    </label>
+    <input type="search" id="search" class="search-input" tabindex="-1" placeholder="Enter your search term...">
+  </form>
+  <div id="results" class="results"></div>
+</div>
+
+      </div>
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+      <li><strong>Follow:</strong></li>
+    
+
+    
+      
+        
+      
+        
+      
+        
+          <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i> LinkedIn</a></li>
+        
+      
+    
+
+    <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+  </ul>
+</div>
+
+<div class="page__footer-copyright">© 2025 서버 개발자. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+<script src="/assets/js/lunr/lunr.min.js"></script>
+<script src="/assets/js/lunr/lunr-store.js"></script>
+<script src="/assets/js/lunr/lunr-en.js"></script>
+
+
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LM91QEFQ4D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-LM91QEFQ4D', { 'anonymize_ip': false});
+</script>
+
+
+
+
+
+
+    
+  <script>
+    var disqus_config = function () {
+      this.page.url = "https://dreamsh19.github.io/error/%EC%95%A0%ED%94%8C%EB%A6%AC%EC%BC%80%EC%9D%B4%EC%85%98-%EC%97%90%EB%9F%AC-%EC%BD%94%EB%93%9C-%EC%84%A4%EA%B3%84/";  /* Replace PAGE_URL with your page's canonical URL variable */
+      this.page.identifier = "/error/애플리케이션-에러-코드-설계"; /* Replace PAGE_IDENTIFIER with your page's unique identifier variable */
+    };
+    (function() { /* DON'T EDIT BELOW THIS LINE */
+      var d = document, s = d.createElement('script');
+      s.src = 'https://dreamsh19-github-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', +new Date());
+      (d.head || d.body).appendChild(s);
+    })();
+  </script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript>
+
+
+  
+
+
+
+
+
+  </body>
+</html>

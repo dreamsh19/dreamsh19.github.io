@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.21.0 by Michael Rose
+  Copyright 2013-2020 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+--><html lang="en" class="no-js">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>Go 기초 - 기술을 기술하다</title>
+<meta name="description" content="Package">
+
+
+  <meta name="author" content="ㅎㅅㅎ">
+  
+  <meta property="article:author" content="ㅎㅅㅎ">
+  
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="기술을 기술하다">
+<meta property="og:title" content="Go 기초">
+<meta property="og:url" content="https://dreamsh19.github.io/go/Go-%EA%B8%B0%EC%B4%88/">
+
+
+  <meta property="og:description" content="Package">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2021-04-02T00:00:00+09:00">
+
+
+
+
+
+  
+
+  
+
+
+<link rel="canonical" href="https://dreamsh19.github.io/go/Go-%EA%B8%B0%EC%B4%88/">
+
+
+
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    
+      "@type": "Person",
+      "name": "서버 개발자",
+      "url": "https://dreamsh19.github.io/"
+    
+  }
+</script>
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+<link href="/feed.xml" type="application/atom+xml" rel="alternate" title="기술을 기술하다 Feed">
+
+<!-- https://t.co/dKP3o1e -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script>
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<!--[if IE]>
+  <style>
+    /* old IE unsupported flexbox fixes */
+    .greedy-nav .site-title {
+      padding-right: 3em;
+    }
+    .greedy-nav button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+    }
+  </style>
+<![endif]-->
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single">
+    <nav class="skip-links">
+  <h2 class="screen-reader-text">Skip links</h2>
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    <!--[if lt IE 9]>
+<div class="notice--danger align-center" style="margin: 0;">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience.</div>
+<![endif]-->
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          기술을 기술하다
+          
+        </a>
+        <ul class="visible-links">
+<li class="masthead__menu-item">
+              <a href="/">Home</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/categories/">Categories</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/tags/">Tags</a>
+            </li>
+</ul>
+        
+        <button class="search__toggle" type="button">
+          <span class="visually-hidden">Toggle search</span>
+          <svg class="icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 15.99 16">
+            <path d="M15.5,13.12L13.19,10.8a1.69,1.69,0,0,0-1.28-.55l-0.06-.06A6.5,6.5,0,0,0,5.77,0,6.5,6.5,0,0,0,2.46,11.59a6.47,6.47,0,0,0,7.74.26l0.05,0.05a1.65,1.65,0,0,0,.5,1.24l2.38,2.38A1.68,1.68,0,0,0,15.5,13.12ZM6.4,2A4.41,4.41,0,1,1,2,6.4,4.43,4.43,0,0,1,6.4,2Z" transform="translate(-.01)"></path>
+          </svg>
+        </button>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+
+
+<div itemscope itemtype="https://schema.org/Person">
+
+  
+
+  <div class="author__content">
+    
+      <h3 class="author__name" itemprop="name">ㅎㅅㅎ</h3>
+    
+    
+      <div class="author__bio" itemprop="description">
+        <p>Backend Dev</p>
+
+      </div>
+    
+  </div>
+
+  <div class="author__urls-wrapper">
+    <button class="btn btn--inverse">Follow</button>
+    <ul class="author__urls social-icons">
+      
+        <li itemprop="homeLocation" itemscope itemtype="https://schema.org/Place">
+          <i class="fas fa-fw fa-map-marker-alt" aria-hidden="true"></i> <span itemprop="name">South Korea</span>
+        </li>
+      
+
+      
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+            <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i><span class="label">GitHub</span></a></li>
+          
+        
+          
+            <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span class="label">LinkedIn</span></a></li>
+          
+        
+          
+        
+      
+
+      
+
+      
+        <li>
+          <a href="mailto:dreamsh19@gmail.com">
+            <meta itemprop="email" content="dreamsh19@gmail.com">
+            <i class="fas fa-fw fa-envelope-square" aria-hidden="true"></i><span class="label">Email</span>
+          </a>
+        </li>
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      <!--
+  <li>
+    <a href="http://link-to-whatever-social-network.com/user/" itemprop="sameAs" rel="nofollow noopener noreferrer">
+      <i class="fas fa-fw" aria-hidden="true"></i> Custom Social Profile Link
+    </a>
+  </li>
+-->
+    </ul>
+  </div>
+</div>
+
+  
+  <a href="https://hits.seeyoufarm.com" style="display: none;">
+    <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fdreamsh19.github.io&count_bg=%2348AFB3&title_bg=%237D8B8E&icon=&icon_color=%23360E0E&title=hits&edge_flat=false">
+  </a>  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="Go 기초">
+    <meta itemprop="description" content="Package">
+    <meta itemprop="datePublished" content="2021-04-02T00:00:00+09:00">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">Go 기초
+</h1>
+          
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right sticky">
+            <nav class="toc">
+              <header><h4 class="nav__title">
+<i class="fas fa-file-alt"></i> On this page</h4></header>
+              <ul class="toc__menu">
+<li><a href="#package">Package</a></li>
+<li><a href="#function">Function</a></li>
+<li><a href="#variable">Variable</a></li>
+<li>
+<a href="#%ED%9D%90%EB%A6%84%EC%A0%9C%EC%96%B4">흐름제어</a><ul>
+<li><a href="#for">For</a></li>
+<li><a href="#if">If</a></li>
+<li><a href="#switch">Switch</a></li>
+<li><a href="#defer">Defer</a></li>
+</ul>
+</li>
+<li><a href="#pointer">Pointer</a></li>
+<li><a href="#struct">Struct</a></li>
+<li><a href="#array">Array</a></li>
+<li><a href="#slice">Slice</a></li>
+<li><a href="#map">Map</a></li>
+<li>
+<a href="#function-value">Function value</a><ul><li><a href="#function-closure">Function closure</a></li></ul>
+</li>
+<li><a href="#references">References</a></li>
+</ul>
+
+            </nav>
+          </aside>
+        
+        <h2 id="package">Package</h2>
+
+<ul>
+  <li>
+    <p>package main에서 시작</p>
+  </li>
+  <li>
+    <p>대문자로 시작해야 exported. <br>
+Import 시 exported name만 접근 가능.</p>
+
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">main</span>
+  
+<span class="k">import</span> <span class="p">(</span>
+	<span class="s">"fmt"</span>
+	<span class="s">"math"</span>
+<span class="p">)</span>
+  
+<span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">Pi</span><span class="p">)</span> <span class="c">// 3.141592653589793</span>
+	<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="c">// compile error(cannot refer to unexported name math.pi)</span>
+<span class="p">}</span>
+
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h2 id="function">Function</h2>
+
+<ul>
+  <li>
+    <p>타입이 변수 이름 <strong>뒤</strong>에</p>
+
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">add</span><span class="p">(</span><span class="n">x</span> <span class="kt">int</span><span class="p">,</span> <span class="n">y</span> <span class="kt">int</span><span class="p">)</span> <span class="kt">int</span> <span class="p">{</span>
+	<span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span>
+<span class="p">}</span>
+  
+<span class="c">// 위와 같음</span>
+<span class="k">func</span> <span class="n">add</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="kt">int</span><span class="p">)</span> <span class="kt">int</span> <span class="p">{</span> <span class="c">// 연속적인 경우 마지막에만 명시 가능</span>
+	<span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span>
+<span class="p">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>여러 개 리턴 가능</p>
+
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">swap</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="kt">string</span><span class="p">,</span> <span class="kt">string</span><span class="p">)</span> <span class="p">{</span>
+	<span class="k">return</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span>
+<span class="p">}</span>	
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>naked return : 가독성 떨어지므로 짧은 함수에만 활용 권장</p>
+
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">split</span><span class="p">(</span><span class="n">sum</span> <span class="kt">int</span><span class="p">)</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="kt">int</span><span class="p">)</span> <span class="p">{</span>
+	<span class="n">x</span> <span class="o">=</span> <span class="n">sum</span> <span class="o">*</span> <span class="m">4</span> <span class="o">/</span> <span class="m">9</span>
+	<span class="n">y</span> <span class="o">=</span> <span class="n">sum</span> <span class="o">-</span> <span class="n">x</span>
+	<span class="k">return</span>
+<span class="p">}</span>
+  
+<span class="c">// 같은 표현</span>
+<span class="k">func</span> <span class="n">split</span><span class="p">(</span><span class="n">sum</span> <span class="kt">int</span><span class="p">)</span> <span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">){</span>
+	<span class="n">x</span> <span class="o">:=</span> <span class="n">sum</span> <span class="o">*</span> <span class="m">4</span> <span class="o">/</span> <span class="m">9</span>
+	<span class="n">y</span> <span class="o">:=</span> <span class="n">sum</span> <span class="o">-</span> <span class="n">x</span>
+    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span>
+<span class="p">}</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h2 id="variable">Variable</h2>
+
+<ul>
+  <li>
+    <p>선언은 <code class="language-plaintext highlighter-rouge">var 변수명 type</code></p>
+
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">main</span><span class="p">(){</span>
+	<span class="k">var</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="kt">int</span> <span class="o">=</span> <span class="m">1</span><span class="p">,</span> <span class="m">2</span>
+	<span class="k">var</span> <span class="n">c</span><span class="p">,</span> <span class="n">python</span><span class="p">,</span> <span class="n">java</span> <span class="o">=</span> <span class="no">true</span><span class="p">,</span> <span class="no">false</span><span class="p">,</span> <span class="s">"no!"</span>
+    <span class="c">// initializer와 함께 사용 시 type 생략 가능</span>
+	<span class="n">k</span><span class="o">:=</span> <span class="m">3</span> <span class="c">// var k = 3과 같은 표현. 그러나 함수 안에서만 사용 가능</span>
+    	
+    <span class="c">// 명시적으로 초기화 안했을 경우 "Zero" value로 초기화</span>
+    <span class="c">// Zero value = 0(숫자 타입), false(boolean 타입), ""(string 타입), nil(pointer 타입)</span>
+    <span class="k">var</span> <span class="n">j</span> <span class="kt">int</span>
+	<span class="k">var</span> <span class="n">f</span> <span class="kt">float64</span>
+	<span class="k">var</span> <span class="n">b</span> <span class="kt">bool</span>
+	<span class="k">var</span> <span class="n">s</span> <span class="kt">string</span>
+	<span class="n">fmt</span><span class="o">.</span><span class="n">Printf</span><span class="p">(</span><span class="s">"%v %v %v %q</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="c">// 0 0 false ""</span>
+<span class="p">}</span>
+  
+<span class="n">k</span><span class="o">:=</span><span class="m">3</span> <span class="c">// syntax error: non-declaration statement outside function body</span>
+  
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Basic types</p>
+
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="kt">bool</span>
+<span class="kt">string</span>
+<span class="kt">int</span>  <span class="kt">int8</span>  <span class="kt">int16</span>  <span class="kt">int32</span>  <span class="kt">int64</span>
+<span class="kt">uint</span> <span class="kt">uint8</span> <span class="kt">uint16</span> <span class="kt">uint32</span> <span class="kt">uint64</span> <span class="kt">uintptr</span> 
+<span class="c">// int, uint, uintptr은 32-bit 시스템에서는 32 bit, 64-bit system에서는 64 bit</span>
+<span class="kt">byte</span> <span class="c">// alias for uint8</span>
+<span class="kt">rune</span> <span class="c">// alias for int32. represents a Unicode code point</span>
+<span class="kt">float32</span> <span class="kt">float64</span>
+<span class="kt">complex64</span> <span class="kt">complex128</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Type casting : <strong>반드시 명시적으로 표기</strong></p>
+
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="k">var</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="kt">int</span> <span class="o">=</span> <span class="m">3</span><span class="p">,</span> <span class="m">4</span>
+<span class="k">var</span> <span class="n">f</span> <span class="kt">float64</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">Sqrt</span><span class="p">(</span><span class="kt">float64</span><span class="p">(</span><span class="n">x</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="o">*</span><span class="n">y</span><span class="p">))</span>
+<span class="k">var</span> <span class="n">z</span> <span class="kt">uint</span> <span class="o">=</span> <span class="kt">uint</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="k">var</span> <span class="n">z</span> <span class="kt">uint</span> <span class="o">=</span> <span class="n">f</span> <span class="c">// cannot use f (type float64) as type uint in assignment</span>
+  
+<span class="c">// 명시 안 한 경우는 right side와 같은 타입</span>
+<span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="n">a</span> <span class="o">:=</span> <span class="m">42</span>
+	<span class="n">b</span> <span class="o">:=</span> <span class="m">42.1</span>
+	<span class="n">c</span> <span class="o">:=</span> <span class="m">42</span><span class="o">+</span><span class="m">5i</span>
+	<span class="n">fmt</span><span class="o">.</span><span class="n">Printf</span><span class="p">(</span><span class="s">"Types are %T %T %T</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="c">// Types are int float64 complex128</span>
+<span class="p">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>const</p>
+
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="k">const</span> <span class="n">Pi</span> <span class="o">=</span> <span class="m">3.14</span>
+<span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="k">const</span> <span class="n">World</span> <span class="o">=</span> <span class="s">"世界"</span>
+	<span class="c">// const 변수는 := 로 선언 불가능</span>
+	<span class="k">const</span> <span class="n">i</span> <span class="o">:=</span> <span class="m">1</span> <span class="c">// syntax error: unexpected :=, expecting =</span>
+<span class="p">}</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h2 id="흐름제어">흐름제어</h2>
+
+<h3 id="for">For</h3>
+
+<ul>
+  <li>
+    <p>유일한 반복문 (while 없음)</p>
+  </li>
+  <li>
+    <p>for문 () 없고 {} 있음</p>
+
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">main</span>
+  
+<span class="k">import</span> <span class="s">"fmt"</span>
+  
+<span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="n">sum</span> <span class="o">:=</span> <span class="m">0</span>
+	<span class="k">for</span> <span class="n">i</span> <span class="o">:=</span> <span class="m">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="m">10</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">{</span>
+		<span class="n">sum</span> <span class="o">+=</span> <span class="n">i</span>
+	<span class="p">}</span>
+    
+	<span class="n">sum</span> <span class="o">:=</span> <span class="m">1</span>
+	<span class="k">for</span> <span class="n">sum</span> <span class="o">&lt;</span> <span class="m">1000</span> <span class="p">{</span> <span class="c">// ; 제거시 while처럼 사용 가능</span>
+		<span class="n">sum</span> <span class="o">+=</span> <span class="n">sum</span>
+	<span class="p">}</span>
+    
+	<span class="k">for</span> <span class="p">{</span> <span class="c">// 무한 루프</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h3 id="if">If</h3>
+
+<ul>
+  <li>마찬가지로 () 없고 {} 있음</li>
+</ul>
+
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">x</span> <span class="kt">float64</span><span class="p">)</span> <span class="kt">string</span> <span class="p">{</span>
+	<span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="m">0</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="n">sqrt</span><span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="s">"i"</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Sprint</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">Sqrt</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">pow</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">lim</span> <span class="kt">float64</span><span class="p">)</span> <span class="kt">float64</span> <span class="p">{</span>
+  	<span class="c">// if문 내 scope를 갖는 변수 선언 및 할당 가능. ;으로 구분. 마지막에 조건문</span>
+	<span class="k">if</span> <span class="n">v</span> <span class="o">:=</span> <span class="n">math</span><span class="o">.</span><span class="n">Pow</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">n</span><span class="p">);</span> <span class="n">v</span> <span class="o">&lt;</span> <span class="n">lim</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="n">v</span>
+	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+		<span class="n">fmt</span><span class="o">.</span><span class="n">Printf</span><span class="p">(</span><span class="s">"%g &gt;= %g</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">lim</span><span class="p">)</span>
+	<span class="p">}</span>
+  	<span class="c">// return v (undefined : v)</span>
+	<span class="k">return</span> <span class="n">lim</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h3 id="switch">Switch</h3>
+
+<ul>
+  <li>break문 없음. 무조건 조건 여러 개 중 하나만 실행(다른 언어는 break 없으면 다 돈다)
+    <ul>
+      <li>조건 맞는거 만나면 실행하고 switch문 빠져나옴</li>
+    </ul>
+  </li>
+  <li>정수일 필요 없음</li>
+  <li>case가 상수일 필요도 없음</li>
+  <li>조건이 없어도 됨</li>
+</ul>
+
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">main</span>
+
+<span class="k">import</span> <span class="p">(</span>
+	<span class="s">"fmt"</span>
+	<span class="s">"runtime"</span>
+<span class="p">)</span>
+
+<span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="n">fmt</span><span class="o">.</span><span class="n">Print</span><span class="p">(</span><span class="s">"Go runs on "</span><span class="p">)</span>
+	<span class="k">switch</span> <span class="n">os</span> <span class="o">:=</span> <span class="n">runtime</span><span class="o">.</span><span class="n">GOOS</span><span class="p">;</span> <span class="n">os</span> <span class="p">{</span>
+	<span class="k">case</span> <span class="s">"darwin"</span><span class="o">:</span>
+		<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="s">"OS X."</span><span class="p">)</span>
+	<span class="k">case</span> <span class="s">"linux"</span><span class="o">:</span>
+		<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="s">"Linux."</span><span class="p">)</span>
+	<span class="k">default</span><span class="o">:</span>
+		<span class="n">fmt</span><span class="o">.</span><span class="n">Printf</span><span class="p">(</span><span class="s">"%s.</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">os</span><span class="p">)</span>
+	<span class="p">}</span>
+  
+  	<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="s">"When's Saturday?"</span><span class="p">)</span>
+	<span class="n">today</span> <span class="o">:=</span> <span class="n">time</span><span class="o">.</span><span class="n">Now</span><span class="p">()</span><span class="o">.</span><span class="n">Weekday</span><span class="p">()</span>
+	<span class="k">switch</span> <span class="n">time</span><span class="o">.</span><span class="n">Saturday</span> <span class="p">{</span>
+	<span class="k">case</span> <span class="n">today</span> <span class="o">+</span> <span class="m">0</span><span class="o">:</span> <span class="c">// 상수일 필요 없다.</span>
+		<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="s">"Today."</span><span class="p">)</span>
+	<span class="k">case</span> <span class="n">today</span> <span class="o">+</span> <span class="m">1</span><span class="o">:</span>
+		<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="s">"Tomorrow."</span><span class="p">)</span>
+	<span class="k">case</span> <span class="n">today</span> <span class="o">+</span> <span class="m">2</span><span class="o">:</span>
+		<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="s">"In two days."</span><span class="p">)</span>
+	<span class="k">default</span><span class="o">:</span>
+		<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="s">"Too far away."</span><span class="p">)</span>
+	<span class="p">}</span>
+  
+  	<span class="c">// 긴 if-else문의 연속을 switch로 깔끔하게 쓸 수 있다. </span>
+  	<span class="n">t</span> <span class="o">:=</span> <span class="n">time</span><span class="o">.</span><span class="n">Now</span><span class="p">()</span>
+	<span class="k">switch</span> <span class="p">{</span>
+	<span class="k">case</span> <span class="n">t</span><span class="o">.</span><span class="n">Hour</span><span class="p">()</span> <span class="o">&lt;</span> <span class="m">12</span><span class="o">:</span>
+		<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="s">"Good morning!"</span><span class="p">)</span>
+	<span class="k">case</span> <span class="n">t</span><span class="o">.</span><span class="n">Hour</span><span class="p">()</span> <span class="o">&lt;</span> <span class="m">17</span><span class="o">:</span>
+		<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="s">"Good afternoon."</span><span class="p">)</span>
+	<span class="k">default</span><span class="o">:</span>
+		<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="s">"Good evening."</span><span class="p">)</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+
+</code></pre></div></div>
+
+<h3 id="defer">Defer</h3>
+
+<ul>
+  <li>자신이 속한 함수의 return 이후 실행되도록(java finally와 유사)</li>
+  <li>함수 argument는 바로 넣지만 실행만 미루는 것</li>
+  <li>이때 stack 방식으로 쌓아놓는다. LIFO</li>
+  <li>활용 예 : 다른 함수, 모듈이 일을 다하고 마지막에 clean-up할때 활용 가능</li>
+  <li>참고 <a href="https://blog.golang.org/defer-panic-and-recover">https://blog.golang.org/defer-panic-and-recover</a>
+</li>
+</ul>
+
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="s">"counting"</span><span class="p">)</span>
+
+	<span class="k">for</span> <span class="n">i</span> <span class="o">:=</span> <span class="m">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="m">10</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">{</span>
+		<span class="k">defer</span> <span class="n">fmt</span><span class="o">.</span><span class="n">Print</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+	<span class="p">}</span>
+
+	<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="s">"done"</span><span class="p">)</span>
+<span class="p">}</span>
+<span class="c">/* 
+실행 결과
+counting
+done
+9876543210
+*/</span>
+
+<span class="k">func</span> <span class="n">c</span><span class="p">()</span> <span class="p">(</span><span class="n">i</span> <span class="kt">int</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">defer</span> <span class="k">func</span><span class="p">()</span> <span class="p">{</span> <span class="n">i</span><span class="o">++</span> <span class="p">}()</span>
+    <span class="k">return</span> <span class="m">1</span>
+<span class="p">}</span>
+<span class="c">// c()의 return값은 2</span>
+</code></pre></div></div>
+
+<h2 id="pointer">Pointer</h2>
+
+<ul>
+  <li>
+    <p>C 포인터와 동일한 문법</p>
+  </li>
+  <li>
+    <p>그러나 C와 달리 포인터 연산 x</p>
+  </li>
+  <li>
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="k">var</span> <span class="n">p</span> <span class="o">*</span><span class="kt">int</span> <span class="c">// p는 int 포인터</span>
+<span class="n">i</span> <span class="o">:=</span> <span class="m">42</span>
+<span class="n">p</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">i</span>
+<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="p">)</span> <span class="c">// read i through the pointer p</span>
+<span class="o">*</span><span class="n">p</span> <span class="o">=</span> <span class="m">21</span>         <span class="c">// set i through the pointer p</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h2 id="struct">Struct</h2>
+
+<ul>
+  <li>collection of fields</li>
+</ul>
+
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">main</span>
+
+<span class="k">import</span> <span class="s">"fmt"</span>
+
+<span class="k">type</span> <span class="n">Vertex</span> <span class="k">struct</span> <span class="p">{</span>
+	<span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="kt">int</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="n">v</span> <span class="o">:=</span> <span class="n">Vertex</span><span class="p">{</span><span class="m">1</span><span class="p">,</span> <span class="m">2</span><span class="p">}</span>
+	<span class="n">v</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="m">4</span>
+    <span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="n">v</span><span class="p">)}</span> <span class="c">// 4 2</span>
+	<span class="n">p</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="n">v</span> <span class="c">// 포인터도 가능</span>
+	<span class="n">p</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="m">1e9</span> <span class="c">// 포인터 이용 field 접근 문법 다름</span>
+	<span class="c">// cf. C의 p-&gt;X 또는 (*p).x 와 동일</span>
+	<span class="c">// Go에서 (*p).X = 1e9도 가능하긴 하지만 위의 방식이 더 간결</span>
+	<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="n">v</span><span class="p">)}</span> <span class="c">// 4 2</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<ul>
+  <li>
+    <p>Struct literals : javascript의 객체 literal과 유사</p>
+
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="c">// 세가지 모두 가능</span>
+<span class="k">var</span> <span class="p">(</span>
+	<span class="n">v1</span> <span class="o">=</span> <span class="n">Vertex</span><span class="p">{</span><span class="m">1</span><span class="p">,</span> <span class="m">2</span><span class="p">}</span>  <span class="c">// argument 순서 상관 o</span>
+	<span class="n">v2</span> <span class="o">=</span> <span class="n">Vertex</span><span class="p">{</span><span class="n">X</span><span class="o">:</span> <span class="m">1</span><span class="p">}</span>  <span class="c">// Y:0 is implicit, argument 순서 상관 x</span>
+	<span class="n">v3</span> <span class="o">=</span> <span class="n">Vertex</span><span class="p">{}</span>      <span class="c">// X:0 and Y:0</span>
+<span class="p">)</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h2 id="array">Array</h2>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">var 변수명 [크기]type</code></li>
+  <li>크기 고정. resize 불가 =&gt; slice 활용</li>
+</ul>
+
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="k">var</span> <span class="n">a</span> <span class="p">[</span><span class="m">2</span><span class="p">]</span><span class="kt">string</span>
+	<span class="n">a</span><span class="p">[</span><span class="m">0</span><span class="p">]</span> <span class="o">=</span> <span class="s">"Hello"</span>
+	<span class="n">a</span><span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="o">=</span> <span class="s">"World"</span>
+	<span class="n">primes</span> <span class="o">:=</span> <span class="p">[</span><span class="m">6</span><span class="p">]</span><span class="kt">int</span><span class="p">{</span><span class="m">2</span><span class="p">,</span> <span class="m">3</span><span class="p">,</span> <span class="m">5</span><span class="p">,</span> <span class="m">7</span><span class="p">,</span> <span class="m">11</span><span class="p">,</span> <span class="m">13</span><span class="p">}</span> <span class="c">// Array literal</span>
+	<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+	<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="n">primes</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="slice">Slice</h2>
+
+<ul>
+  <li>
+    <p>slice : <code class="language-plaintext highlighter-rouge">[]type</code>  (크기 지정 x)</p>
+  </li>
+  <li>
+    <p>dynamic size</p>
+  </li>
+  <li>
+    <p>array보다 훨씬 많이 사용</p>
+  </li>
+  <li>
+    <p>slice는 array에 대한 참조일뿐. 데이터를 저장하진 않음</p>
+
+    <ul>
+      <li>array에서 앞뒤 bound에 핀만 하나씩 꽂아 놓는 느낌</li>
+      <li>slice 이용해서 값 변경 시 array 데이터 변경 발생</li>
+    </ul>
+  </li>
+  <li>
+    <p>slice literal은 array literal에서 크기값만 빠진 형태</p>
+
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">main</span>
+  
+<span class="k">import</span> <span class="s">"fmt"</span>
+  
+<span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="n">names</span> <span class="o">:=</span> <span class="p">[</span><span class="m">4</span><span class="p">]</span><span class="kt">string</span><span class="p">{</span>
+		<span class="s">"John"</span><span class="p">,</span>
+		<span class="s">"Paul"</span><span class="p">,</span>
+		<span class="s">"George"</span><span class="p">,</span>
+		<span class="s">"Ringo"</span><span class="p">,</span>
+	<span class="p">}</span>
+	<span class="n">a</span> <span class="o">:=</span> <span class="n">names</span><span class="p">[</span><span class="m">0</span><span class="o">:</span><span class="m">2</span><span class="p">]</span>
+	<span class="n">b</span> <span class="o">:=</span> <span class="n">names</span><span class="p">[</span><span class="m">1</span><span class="o">:</span><span class="m">3</span><span class="p">]</span>
+  
+	<span class="n">b</span><span class="p">[</span><span class="m">0</span><span class="p">]</span> <span class="o">=</span> <span class="s">"XXX"</span>
+	<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="c">// [John XXX] [XXX George] </span>
+	<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="c">// [John XXX George Ringo]</span>
+    
+    
+	<span class="n">q</span> <span class="o">:=</span> <span class="p">[]</span><span class="kt">int</span><span class="p">{</span><span class="m">2</span><span class="p">,</span> <span class="m">3</span><span class="p">,</span> <span class="m">5</span><span class="p">,</span> <span class="m">7</span><span class="p">,</span> <span class="m">11</span><span class="p">,</span> <span class="m">13</span><span class="p">}</span> <span class="c">// slice literal</span>
+	<span class="n">s</span> <span class="o">:=</span> <span class="p">[]</span><span class="k">struct</span> <span class="p">{</span> <span class="c">// struct에 대한 slice도 이런식으로 작성 가능</span>
+		<span class="n">i</span> <span class="kt">int</span>
+		<span class="n">b</span> <span class="kt">bool</span>
+	<span class="p">}{</span>
+		<span class="p">{</span><span class="m">2</span><span class="p">,</span> <span class="no">true</span><span class="p">},</span>
+		<span class="p">{</span><span class="m">3</span><span class="p">,</span> <span class="no">false</span><span class="p">},</span>
+		<span class="p">{</span><span class="m">5</span><span class="p">,</span> <span class="no">true</span><span class="p">},</span>
+		<span class="p">{</span><span class="m">7</span><span class="p">,</span> <span class="no">true</span><span class="p">},</span>
+		<span class="p">{</span><span class="m">11</span><span class="p">,</span> <span class="no">false</span><span class="p">},</span>
+		<span class="p">{</span><span class="m">13</span><span class="p">,</span> <span class="no">true</span><span class="p">},</span>
+	<span class="p">}</span>
+  
+	<span class="c">// 앞뒤 bound 생략 가능 (python과 유사)</span>
+	<span class="k">var</span> <span class="n">a</span> <span class="p">[</span><span class="m">10</span><span class="p">]</span><span class="kt">int</span>
+	<span class="n">a</span><span class="p">[</span><span class="o">:</span><span class="m">2</span><span class="p">]</span> <span class="c">// == a[0:2]</span>
+	<span class="n">a</span><span class="p">[</span><span class="m">1</span><span class="o">:</span><span class="p">]</span> <span class="c">// == a[1:10]</span>
+	<span class="n">a</span><span class="p">[</span><span class="o">:</span><span class="p">]</span> <span class="c">// == a[0:10]</span>
+<span class="p">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>slice는 length와 capacity를 가진다</p>
+
+    <ul>
+      <li>length : slice가 실제로 가리키는 길이(slice시작~slice끝). len(s)</li>
+      <li>capacity : slice 시작~slice의 대상이 되는 array끝. cap(s)</li>
+      <li>capacity를 넘는 upper bound를 걸 수 없다.</li>
+    </ul>
+
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">main</span>
+
+<span class="k">import</span> <span class="s">"fmt"</span>
+  
+<span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="n">s</span> <span class="o">:=</span> <span class="p">[]</span><span class="kt">int</span><span class="p">{</span><span class="m">2</span><span class="p">,</span> <span class="m">3</span><span class="p">,</span> <span class="m">5</span><span class="p">,</span> <span class="m">7</span><span class="p">,</span> <span class="m">11</span><span class="p">,</span> <span class="m">13</span><span class="p">}</span> <span class="c">// len=6 cap=6 [2 3 5 7 11 13]</span>
+	<span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="o">:</span><span class="m">0</span><span class="p">]</span> <span class="c">// len=0 cap=6 []</span>
+	<span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="o">:</span><span class="m">4</span><span class="p">]</span> <span class="c">// len=4 cap=6 [2 3 5 7]</span>
+	<span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="m">2</span><span class="o">:</span><span class="p">]</span> <span class="c">// len=2 cap=4 [5 7]</span>
+	<span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="o">:</span><span class="m">4</span><span class="p">]</span> <span class="c">// len=4 cap=4 [5 7 11 13]</span>
+	<span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="o">:</span><span class="m">5</span><span class="p">]</span> <span class="c">// runtime error: slice bounds out of range [:5] with capacity 4</span>
+<span class="p">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Zero value = <code class="language-plaintext highlighter-rouge">nil</code>  ( null pointer 역할)</p>
+
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="k">var</span> <span class="n">s</span> <span class="p">[]</span><span class="kt">int</span>
+<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="nb">cap</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="n">s</span> <span class="o">==</span> <span class="no">nil</span><span class="p">)</span> <span class="c">// [] 0 0 true</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p><code class="language-plaintext highlighter-rouge">make </code>: built-in function</p>
+
+    <ul>
+      <li>java new와 유사</li>
+      <li>array 안에 값을 모두 zero value로 초기화</li>
+    </ul>
+
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">main</span><span class="p">(){</span>
+	<span class="n">a</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">([]</span><span class="kt">int</span><span class="p">,</span> <span class="m">5</span><span class="p">)</span> <span class="c">// len=5 cap=5 [0 0 0 0 0]</span>
+	<span class="n">b</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">([]</span><span class="kt">int</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">5</span><span class="p">)</span> <span class="c">// len=0, cap=5 []</span>
+<span class="p">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p><code class="language-plaintext highlighter-rouge">append</code> : <code class="language-plaintext highlighter-rouge">func append(s []T, vs ...T) []T</code></p>
+
+    <ul>
+      <li>
+        <p>built-in function</p>
+      </li>
+      <li>
+        <p>append로 인해 값을 저장하는 array의 capacity를 초과한 경우 새 array까지 자동으로 할당</p>
+
+        <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="k">var</span> <span class="n">s</span> <span class="p">[]</span><span class="kt">int</span> <span class="c">// len=0 cap=0 []</span>
+	<span class="n">s</span> <span class="o">=</span> <span class="nb">append</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="m">0</span><span class="p">)</span> <span class="c">//len=1 cap=1 [0]. nil에도 작동</span>
+	<span class="n">s</span> <span class="o">=</span> <span class="nb">append</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="m">3</span><span class="p">,</span> <span class="m">4</span><span class="p">)</span> <span class="c">// len=5 cap=6 [0 1 2 3 4], </span>
+	<span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="o">:</span><span class="m">6</span><span class="p">]</span> <span class="c">// len=6 cap=6 [0 1 2 3 4 0] </span>
+<span class="p">}</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p><code class="language-plaintext highlighter-rouge">range</code>로 순회가능 (map에도 적용 가능)</p>
+
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="n">pow</span> <span class="o">:=</span> <span class="p">[]</span><span class="kt">int</span><span class="p">{</span><span class="m">1</span><span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="m">4</span><span class="p">,</span> <span class="m">8</span><span class="p">,</span> <span class="m">16</span><span class="p">,</span> <span class="m">32</span><span class="p">,</span> <span class="m">64</span><span class="p">,</span> <span class="m">128</span><span class="p">}</span>
+	<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">pow</span> <span class="p">{</span> 
+    	<span class="c">// range의 return 값: 2개(index, value(복사본))</span>
+    	<span class="c">// v 변경해도 pow에 변화 없음</span>
+		<span class="n">fmt</span><span class="o">.</span><span class="n">Printf</span><span class="p">(</span><span class="s">"2**%d = %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">for</span> <span class="n">i</span> <span class="o">:=</span> <span class="k">range</span> <span class="n">pow</span> <span class="p">{</span>
+    	<span class="c">// index만 가져옴</span>
+  	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h2 id="map">Map</h2>
+
+<ul>
+  <li>
+    <p>zero value = <code class="language-plaintext highlighter-rouge">nil</code></p>
+  </li>
+  <li>
+    <p><code class="language-plaintext highlighter-rouge">nil</code>에는 key 추가 불가능 ( assignment to entry in nil map 발생)</p>
+
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+  	
+	<span class="n">m</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="k">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="n">Vertex</span><span class="p">)</span>
+	<span class="n">m</span><span class="p">[</span><span class="s">"Bell Labs"</span><span class="p">]</span> <span class="o">=</span> <span class="n">Vertex</span><span class="p">{</span>
+		<span class="m">40.68433</span><span class="p">,</span> <span class="o">-</span><span class="m">74.39967</span><span class="p">,</span>
+	<span class="p">}</span>
+	<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="s">"Bell Labs"</span><span class="p">])</span>
+    
+	<span class="c">// map literals</span>
+	<span class="k">var</span> <span class="n">m1</span> <span class="o">=</span> <span class="k">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="n">Vertex</span><span class="p">{</span>
+		<span class="s">"Bell Labs"</span><span class="o">:</span> <span class="n">Vertex</span><span class="p">{</span>
+			<span class="m">40.68433</span><span class="p">,</span> <span class="o">-</span><span class="m">74.39967</span><span class="p">,</span>
+		<span class="p">},</span>
+		<span class="s">"Google"</span><span class="o">:</span> <span class="n">Vertex</span><span class="p">{</span>
+			<span class="m">37.42202</span><span class="p">,</span> <span class="o">-</span><span class="m">122.08408</span><span class="p">,</span>
+		<span class="p">},</span>
+	<span class="p">}</span>
+  
+	<span class="c">// 또 다른 map literals (Vertex 생략 가능)</span>
+	<span class="k">var</span> <span class="n">m2</span> <span class="o">=</span> <span class="k">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="n">Vertex</span><span class="p">{</span>
+    	<span class="s">"Bell Labs"</span><span class="o">:</span> <span class="p">{</span><span class="m">40.68433</span><span class="p">,</span> <span class="o">-</span><span class="m">74.39967</span><span class="p">},</span>
+    	<span class="s">"Google"</span><span class="o">:</span> <span class="p">{</span><span class="m">37.42202</span><span class="p">,</span> <span class="o">-</span><span class="m">122.08408</span><span class="p">},</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>key 접근</p>
+
+    <ul>
+      <li>value 2개 일 때 두번째 값은 키의 존재여부(bool)</li>
+    </ul>
+
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="n">m</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="k">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">int</span><span class="p">)</span>
+	<span class="n">m</span><span class="p">[</span><span class="s">"Answer"</span><span class="p">]</span> <span class="o">=</span> <span class="m">42</span> <span class="c">// 할당</span>
+	<span class="n">m</span><span class="p">[</span><span class="s">"Answer"</span><span class="p">]</span> <span class="o">=</span> <span class="m">48</span> <span class="c">// 변경</span>
+	<span class="nb">delete</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="s">"Answer"</span><span class="p">)</span> <span class="c">// 삭제</span>
+	<span class="n">v</span><span class="p">,</span> <span class="n">ok</span> <span class="o">:=</span> <span class="n">m</span><span class="p">[</span><span class="s">"Answer"</span><span class="p">]</span>  <span class="c">// 0, false</span>
+	<span class="n">m</span><span class="p">[</span><span class="s">"Answer"</span><span class="p">]</span> <span class="o">=</span> <span class="m">0</span> 
+	<span class="n">v</span><span class="p">,</span> <span class="n">ok</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s">"Answer"</span><span class="p">]</span> <span class="c">// 0, true</span>
+<span class="p">}</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h2 id="function-value">Function value</h2>
+
+<ul>
+  <li>
+    <p>함수도 다른 변수들처럼 함수 argument 및 return 값으로 사용 가능</p>
+  </li>
+  <li>
+    <div class="language-go highlighter-rouge">
+<div class="highlight"><pre class="highlight"><code><span class="k">package</span> <span class="n">main</span>
+  
+<span class="k">import</span> <span class="p">(</span>
+	<span class="s">"fmt"</span>
+	<span class="s">"math"</span>
+<span class="p">)</span>
+  
+<span class="k">func</span> <span class="n">compute</span><span class="p">(</span><span class="n">fn</span> <span class="k">func</span><span class="p">(</span><span class="kt">float64</span><span class="p">,</span> <span class="kt">float64</span><span class="p">)</span> <span class="kt">float64</span><span class="p">)</span> <span class="kt">float64</span> <span class="p">{</span>
+	<span class="k">return</span> <span class="n">fn</span><span class="p">(</span><span class="m">3</span><span class="p">,</span> <span class="m">4</span><span class="p">)</span>
+<span class="p">}</span>
+  
+<span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="n">hypot</span> <span class="o">:=</span> <span class="k">func</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="kt">float64</span><span class="p">)</span> <span class="kt">float64</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">Sqrt</span><span class="p">(</span><span class="n">x</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="o">*</span><span class="n">y</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="n">compute</span><span class="p">(</span><span class="n">hypot</span><span class="p">))</span> <span class="c">// 5</span>
+	<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="n">compute</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">Pow</span><span class="p">))</span> <span class="c">// 81</span>
+<span class="p">}</span>
+  
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h3 id="function-closure">Function closure</h3>
+
+<ul>
+  <li>
+<code class="language-plaintext highlighter-rouge">adder()</code> 함수는 closure. <code class="language-plaintext highlighter-rouge">sum</code> 변수에 bind 되어 있음</li>
+</ul>
+
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">adder</span><span class="p">()</span> <span class="k">func</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="kt">int</span> <span class="p">{</span>
+	<span class="n">sum</span> <span class="o">:=</span> <span class="m">0</span>
+	<span class="k">return</span> <span class="k">func</span><span class="p">(</span><span class="n">x</span> <span class="kt">int</span><span class="p">)</span> <span class="kt">int</span> <span class="p">{</span>
+		<span class="n">sum</span> <span class="o">+=</span> <span class="n">x</span>
+		<span class="k">return</span> <span class="n">sum</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="n">pos</span><span class="p">,</span> <span class="n">neg</span> <span class="o">:=</span> <span class="n">adder</span><span class="p">(),</span> <span class="n">adder</span><span class="p">()</span>
+	<span class="k">for</span> <span class="n">i</span> <span class="o">:=</span> <span class="m">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="m">10</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span> <span class="p">{</span>
+		<span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span>
+			<span class="n">pos</span><span class="p">(</span><span class="n">i</span><span class="p">),</span>
+			<span class="n">neg</span><span class="p">(</span><span class="o">-</span><span class="m">2</span><span class="o">*</span><span class="n">i</span><span class="p">),</span>
+		<span class="p">)</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li><a href="https://tour.golang.org/basic">https://tour.golang.org/basic</a></li>
+</ul>
+
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/tags/#go" class="page__taxonomy-item" rel="tag">Go</a>
+    
+    </span>
+  </p>
+
+
+
+
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-folder-open" aria-hidden="true"></i> Categories: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/categories/#go" class="page__taxonomy-item" rel="tag">Go</a>
+    
+    </span>
+  </p>
+
+
+        
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time datetime="2021-04-02T00:00:00+09:00">April 2, 2021</time></p>
+
+
+      </footer>
+
+      <section class="page__share">
+  
+    <h4 class="page__share-title">Share on</h4>
+  
+
+  <a href="https://twitter.com/intent/tweet?text=Go+%EA%B8%B0%EC%B4%88%20https%3A%2F%2Fdreamsh19.github.io%2Fgo%2FGo-%25EA%25B8%25B0%25EC%25B4%2588%2F" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fdreamsh19.github.io%2Fgo%2FGo-%25EA%25B8%25B0%25EC%25B4%2588%2F" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fdreamsh19.github.io%2Fgo%2FGo-%25EA%25B8%25B0%25EC%25B4%2588%2F" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
+
+      
+  <nav class="pagination">
+    
+      <a href="/mac/Mac%EC%97%90%EC%84%9C-%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7-%EB%B0%94%ED%83%95%ED%99%94%EB%A9%B4%EB%A7%8C-%EB%90%A0%EB%95%8C/" class="pagination--pager" title="Mac에서 스크린샷 바탕화면만 될때
+">Previous</a>
+    
+    
+      <a href="/go/Go-Methods-&amp;-Interfaces/" class="pagination--pager" title="Go Methods &amp; Interfaces
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+      <div class="page__comments">
+  
+  
+      <h4 class="page__comments-title">Leave a comment</h4>
+      <section id="disqus_thread"></section>
+    
+</div>
+
+    
+  </article>
+
+  
+  
+</div>
+
+    </div>
+
+    
+      <div class="search-content">
+        <div class="search-content__inner-wrap">
+<form class="search-content__form" onkeydown="return event.key != 'Enter';">
+    <label class="sr-only" for="search">
+      Enter your search term...
+    </label>
+    <input type="search" id="search" class="search-input" tabindex="-1" placeholder="Enter your search term...">
+  </form>
+  <div id="results" class="results"></div>
+</div>
+
+      </div>
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+      <li><strong>Follow:</strong></li>
+    
+
+    
+      
+        
+      
+        
+      
+        
+          <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i> LinkedIn</a></li>
+        
+      
+    
+
+    <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+  </ul>
+</div>
+
+<div class="page__footer-copyright">© 2025 서버 개발자. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+<script src="/assets/js/lunr/lunr.min.js"></script>
+<script src="/assets/js/lunr/lunr-store.js"></script>
+<script src="/assets/js/lunr/lunr-en.js"></script>
+
+
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LM91QEFQ4D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-LM91QEFQ4D', { 'anonymize_ip': false});
+</script>
+
+
+
+
+
+
+    
+  <script>
+    var disqus_config = function () {
+      this.page.url = "https://dreamsh19.github.io/go/Go-%EA%B8%B0%EC%B4%88/";  /* Replace PAGE_URL with your page's canonical URL variable */
+      this.page.identifier = "/go/Go-기초"; /* Replace PAGE_IDENTIFIER with your page's unique identifier variable */
+    };
+    (function() { /* DON'T EDIT BELOW THIS LINE */
+      var d = document, s = d.createElement('script');
+      s.src = 'https://dreamsh19-github-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', +new Date());
+      (d.head || d.body).appendChild(s);
+    })();
+  </script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript>
+
+
+  
+
+
+
+
+
+  </body>
+</html>

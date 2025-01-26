@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.21.0 by Michael Rose
+  Copyright 2013-2020 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+--><html lang="en" class="no-js">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>Airflow DockerOperator의 Private registry 장애전파 방지(LazyLoginDockerOperator 구현기) - 기술을 기술하다</title>
+<meta name="description" content="이슈    Airflow에서 DockerOperator를 이용하여 매번 private registry에서 도커 이미지를 pull해서 수행하는 배치가 있다.   그런데 외부 조직에서 관리하는 private registry의 장애가 발생하는 경우 registry의 장애가 서비스의 배치까지 전파되는 문제가 있었다.   그리고 private registry의 장애가 빈번해짐에 따라 서비스에 영향을 주지 않게끔 조치가 필요해졌고, registry 장애가 서비스 배치의 장애로 전파되지 않도록 하고자했다.">
+
+
+  <meta name="author" content="ㅎㅅㅎ">
+  
+  <meta property="article:author" content="ㅎㅅㅎ">
+  
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="기술을 기술하다">
+<meta property="og:title" content="Airflow DockerOperator의 Private registry 장애전파 방지(LazyLoginDockerOperator 구현기)">
+<meta property="og:url" content="https://dreamsh19.github.io/airflow/Airflow-DockerOperator%EC%9D%98-Private-registry-%EC%9E%A5%EC%95%A0%EC%A0%84%ED%8C%8C-%EB%B0%A9%EC%A7%80(LazyLoginDockerOperator-%EA%B5%AC%ED%98%84%EA%B8%B0)/">
+
+
+  <meta property="og:description" content="이슈    Airflow에서 DockerOperator를 이용하여 매번 private registry에서 도커 이미지를 pull해서 수행하는 배치가 있다.   그런데 외부 조직에서 관리하는 private registry의 장애가 발생하는 경우 registry의 장애가 서비스의 배치까지 전파되는 문제가 있었다.   그리고 private registry의 장애가 빈번해짐에 따라 서비스에 영향을 주지 않게끔 조치가 필요해졌고, registry 장애가 서비스 배치의 장애로 전파되지 않도록 하고자했다.">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2024-10-12T00:00:00+09:00">
+
+
+
+  <meta property="article:modified_time" content="2024-10-13T23:46:10+09:00">
+
+
+
+  
+
+  
+
+
+<link rel="canonical" href="https://dreamsh19.github.io/airflow/Airflow-DockerOperator%EC%9D%98-Private-registry-%EC%9E%A5%EC%95%A0%EC%A0%84%ED%8C%8C-%EB%B0%A9%EC%A7%80(LazyLoginDockerOperator-%EA%B5%AC%ED%98%84%EA%B8%B0)/">
+
+
+
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    
+      "@type": "Person",
+      "name": "서버 개발자",
+      "url": "https://dreamsh19.github.io/"
+    
+  }
+</script>
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+<link href="/feed.xml" type="application/atom+xml" rel="alternate" title="기술을 기술하다 Feed">
+
+<!-- https://t.co/dKP3o1e -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script>
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<!--[if IE]>
+  <style>
+    /* old IE unsupported flexbox fixes */
+    .greedy-nav .site-title {
+      padding-right: 3em;
+    }
+    .greedy-nav button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+    }
+  </style>
+<![endif]-->
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single">
+    <nav class="skip-links">
+  <h2 class="screen-reader-text">Skip links</h2>
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    <!--[if lt IE 9]>
+<div class="notice--danger align-center" style="margin: 0;">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience.</div>
+<![endif]-->
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+        <a class="site-title" href="/">
+          기술을 기술하다
+          
+        </a>
+        <ul class="visible-links">
+<li class="masthead__menu-item">
+              <a href="/">Home</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/categories/">Categories</a>
+            </li>
+<li class="masthead__menu-item">
+              <a href="/tags/">Tags</a>
+            </li>
+</ul>
+        
+        <button class="search__toggle" type="button">
+          <span class="visually-hidden">Toggle search</span>
+          <svg class="icon" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 15.99 16">
+            <path d="M15.5,13.12L13.19,10.8a1.69,1.69,0,0,0-1.28-.55l-0.06-.06A6.5,6.5,0,0,0,5.77,0,6.5,6.5,0,0,0,2.46,11.59a6.47,6.47,0,0,0,7.74.26l0.05,0.05a1.65,1.65,0,0,0,.5,1.24l2.38,2.38A1.68,1.68,0,0,0,15.5,13.12ZM6.4,2A4.41,4.41,0,1,1,2,6.4,4.43,4.43,0,0,1,6.4,2Z" transform="translate(-.01)"></path>
+          </svg>
+        </button>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+<div id="main" role="main">
+  
+  <div class="sidebar sticky">
+  
+
+
+<div itemscope itemtype="https://schema.org/Person">
+
+  
+
+  <div class="author__content">
+    
+      <h3 class="author__name" itemprop="name">ㅎㅅㅎ</h3>
+    
+    
+      <div class="author__bio" itemprop="description">
+        <p>Backend Dev</p>
+
+      </div>
+    
+  </div>
+
+  <div class="author__urls-wrapper">
+    <button class="btn btn--inverse">Follow</button>
+    <ul class="author__urls social-icons">
+      
+        <li itemprop="homeLocation" itemscope itemtype="https://schema.org/Place">
+          <i class="fas fa-fw fa-map-marker-alt" aria-hidden="true"></i> <span itemprop="name">South Korea</span>
+        </li>
+      
+
+      
+        
+          
+        
+          
+        
+          
+        
+          
+        
+          
+            <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i><span class="label">GitHub</span></a></li>
+          
+        
+          
+            <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span class="label">LinkedIn</span></a></li>
+          
+        
+          
+        
+      
+
+      
+
+      
+        <li>
+          <a href="mailto:dreamsh19@gmail.com">
+            <meta itemprop="email" content="dreamsh19@gmail.com">
+            <i class="fas fa-fw fa-envelope-square" aria-hidden="true"></i><span class="label">Email</span>
+          </a>
+        </li>
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+
+      <!--
+  <li>
+    <a href="http://link-to-whatever-social-network.com/user/" itemprop="sameAs" rel="nofollow noopener noreferrer">
+      <i class="fas fa-fw" aria-hidden="true"></i> Custom Social Profile Link
+    </a>
+  </li>
+-->
+    </ul>
+  </div>
+</div>
+
+  
+  <a href="https://hits.seeyoufarm.com" style="display: none;">
+    <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fdreamsh19.github.io&count_bg=%2348AFB3&title_bg=%237D8B8E&icon=&icon_color=%23360E0E&title=hits&edge_flat=false">
+  </a>  
+  </div>
+
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="Airflow DockerOperator의 Private registry 장애전파 방지(LazyLoginDockerOperator 구현기)">
+    <meta itemprop="description" content="이슈  Airflow에서 DockerOperator를 이용하여 매번 private registry에서 도커 이미지를 pull해서 수행하는 배치가 있다.  그런데 외부 조직에서 관리하는 private registry의 장애가 발생하는 경우 registry의 장애가 서비스의 배치까지 전파되는 문제가 있었다.  그리고 private registry의 장애가 빈번해짐에 따라 서비스에 영향을 주지 않게끔 조치가 필요해졌고, registry 장애가 서비스 배치의 장애로 전파되지 않도록 하고자했다.">
+    <meta itemprop="datePublished" content="2024-10-12T00:00:00+09:00">
+    <meta itemprop="dateModified" content="2024-10-13T23:46:10+09:00">
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">Airflow DockerOperator의 Private registry 장애전파 방지(LazyLoginDockerOperator 구현기)
+</h1>
+          
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+          <aside class="sidebar__right sticky">
+            <nav class="toc">
+              <header><h4 class="nav__title">
+<i class="fas fa-file-alt"></i> On this page</h4></header>
+              <ul class="toc__menu">
+<li><a href="#%EC%9D%B4%EC%8A%88">이슈</a></li>
+<li><a href="#%EB%AC%B8%EC%A0%9C-%EC%83%81%ED%99%A9-%EB%8B%B9%EC%8B%9C-%EB%A1%9C%EA%B7%B8">문제 상황 당시 로그</a></li>
+<li><a href="#%EC%B5%9C%EC%B4%88-%EC%8B%9C%EB%8F%84--force_pull-%EC%98%B5%EC%85%98-%EB%B3%80%EA%B2%BD">최초 시도 : force_pull 옵션 변경</a></li>
+<li><a href="#dockeroperator-%EC%86%8C%EC%8A%A4%EB%A5%BC-%EC%82%B4%ED%8E%B4%EB%B3%B4%EC%9E%90">DockerOperator 소스를 살펴보자</a></li>
+<li><a href="#execute-%ED%95%A8%EC%88%98-%EC%98%A4%EB%B2%84%EB%9D%BC%EC%9D%B4%EB%94%A9%EC%9D%84-%ED%86%B5%ED%95%9C-%ED%95%B4%EA%B2%B0">execute() 함수 오버라이딩을 통한 해결</a></li>
+<li><a href="#%EC%9D%B4%ED%9B%84-%EB%B2%84%EC%A0%84%EC%97%90%EC%84%9C-%ED%95%B4%EA%B2%B0%EB%90%98%EC%97%88%EC%9D%84%EA%B9%8C">이후 버전에서 해결되었을까</a></li>
+<li><a href="#references">References</a></li>
+</ul>
+
+            </nav>
+          </aside>
+        
+        <h2 id="이슈">이슈</h2>
+<ul>
+  <li>Airflow에서 DockerOperator를 이용하여 매번 private registry에서 도커 이미지를 pull해서 수행하는 배치가 있다.</li>
+  <li>그런데 외부 조직에서 관리하는 private registry의 장애가 발생하는 경우 registry의 장애가 서비스의 배치까지 전파되는 문제가 있었다.</li>
+  <li>그리고 private registry의 장애가 빈번해짐에 따라 서비스에 영향을 주지 않게끔 조치가 필요해졌고, registry 장애가 서비스 배치의 장애로 전파되지 않도록 하고자했다.</li>
+</ul>
+
+<h2 id="문제-상황-당시-로그">문제 상황 당시 로그</h2>
+
+<p><img src="https://github.com/user-attachments/assets/979aeed5-6d43-4432-ab22-9d53d8fc9268" alt="image"></p>
+
+<p>문제 상황 발생 당시의 로그이다. Docker login 단계에서 private registry에서 500 에러가 발생하면서 해당 DAG가 실패하였다.</p>
+
+<h2 id="최초-시도--force_pull-옵션-변경">최초 시도 : force_pull 옵션 변경</h2>
+
+<p>서비스에서는 매번 private registry에서 이미지를 pull하도록 하는 DockerOperator의 force_pull 옵션을 True로 설정하여 사용하고 있었다.<br>
+force_pull 옵션은 그 이름에서도 쉽게 알 수 있듯이, DockerOperator가 수행될때마다 무조건 이미지를 pull해서 사용하도록 하는 옵션이다.</p>
+<blockquote>
+  <p><strong>force_pull</strong> (<a href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) – Pull the docker image on every run. Default is False.</p>
+</blockquote>
+
+<p>True로 설정해두고 사용했던건 아마도 원격의 단일 이미지를 참조하게 함으로써 로컬에 캐싱된 이미지로 인한 불일치나 장애를 막기 위함이 아닐까 추측된다.<br>
+따라서 force_pull 옵션을 False로 설정하면 최초 수행 시(이미지 버전 업 등)에만 이미지를 pull하고, 그 이후에는 이미 pull 받은 이미지를 로컬에서 가져올테니,<br>
+최초 수행 시에만 registry 의존성이 있고, 그 이후에는 registry 장애에 영향을 받지 않을 것이라고 생각했다.<br>
+(물론 이게 유효하려면 매번 같은 worker에서 수행된다는 보장이 되어야하는데, 해당 DAG는 고정된 하나의 장비에서 수행되도록 설정되어 있었다.)</p>
+
+<p>그러나.. force_pull 옵션을 비활성화하고 테스트를 해보았으나, private registry가 올바른 응답을 주지 않는 경우에 여전히 DAG는 실패했다.</p>
+
+<h2 id="dockeroperator-소스를-살펴보자">DockerOperator 소스를 살펴보자</h2>
+
+<p>force_pull 옵션이 의도대로 동작하지 않고, 문서에도 특별한 설명이 없어서 소스 코드를 살펴보았다.<br>
+아래는 DockerOperator의 execute() 함수 전문이다. (서비스에서 사용하고 있던 providers-docker 2.5.0 버전 기준)<br>
+참고로, Airflow의 각종 Operator들은 BaseOperator의 execute() 함수를 구현하여 서로 다른 기능을 제공한다.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="sh">'</span><span class="s">Context</span><span class="sh">'</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+	<span class="n">self</span><span class="p">.</span><span class="n">cli</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="nf">_get_cli</span><span class="p">()</span>
+	<span class="k">if</span> <span class="ow">not</span> <span class="n">self</span><span class="p">.</span><span class="n">cli</span><span class="p">:</span>
+		<span class="k">raise</span> <span class="nc">Exception</span><span class="p">(</span><span class="sh">"</span><span class="s">The </span><span class="sh">'</span><span class="s">cli</span><span class="sh">'</span><span class="s"> should be initialized before!</span><span class="sh">"</span><span class="p">)</span>
+
+	<span class="c1"># Pull the docker image if `force_pull` is set or image does not exist locally
+</span>	<span class="k">if</span> <span class="n">self</span><span class="p">.</span><span class="n">force_pull</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">self</span><span class="p">.</span><span class="n">cli</span><span class="p">.</span><span class="nf">images</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">image</span><span class="p">):</span>
+		<span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">info</span><span class="p">(</span><span class="sh">'</span><span class="s">Pulling docker image %s</span><span class="sh">'</span><span class="p">,</span> <span class="n">self</span><span class="p">.</span><span class="n">image</span><span class="p">)</span>
+		<span class="n">latest_status</span> <span class="o">=</span> <span class="p">{}</span>
+		<span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">cli</span><span class="p">.</span><span class="nf">pull</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">image</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">decode</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+			<span class="k">if</span> <span class="nf">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+				<span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">info</span><span class="p">(</span><span class="sh">"</span><span class="s">%s</span><span class="sh">"</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+				<span class="k">continue</span>
+			<span class="k">if</span> <span class="nf">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="sh">'</span><span class="s">status</span><span class="sh">'</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+				<span class="n">output_status</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="sh">"</span><span class="s">status</span><span class="sh">"</span><span class="p">]</span>
+				<span class="k">if</span> <span class="sh">'</span><span class="s">id</span><span class="sh">'</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+					<span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">info</span><span class="p">(</span><span class="sh">"</span><span class="s">%s</span><span class="sh">"</span><span class="p">,</span> <span class="n">output_status</span><span class="p">)</span>
+					<span class="k">continue</span>
+
+				<span class="n">output_id</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="sh">"</span><span class="s">id</span><span class="sh">"</span><span class="p">]</span>
+				<span class="k">if</span> <span class="n">latest_status</span><span class="p">.</span><span class="nf">get</span><span class="p">(</span><span class="n">output_id</span><span class="p">)</span> <span class="o">!=</span> <span class="n">output_status</span><span class="p">:</span>
+					<span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">info</span><span class="p">(</span><span class="sh">"</span><span class="s">%s: %s</span><span class="sh">"</span><span class="p">,</span> <span class="n">output_id</span><span class="p">,</span> <span class="n">output_status</span><span class="p">)</span>
+					<span class="n">latest_status</span><span class="p">[</span><span class="n">output_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">output_status</span>
+	<span class="k">return</span> <span class="n">self</span><span class="p">.</span><span class="nf">_run_image</span><span class="p">()</span>
+
+<span class="k">def</span> <span class="nf">_get_cli</span><span class="p">(</span><span class="n">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">APIClient</span><span class="p">:</span>
+	<span class="k">if</span> <span class="n">self</span><span class="p">.</span><span class="n">docker_conn_id</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">self</span><span class="p">.</span><span class="nf">get_hook</span><span class="p">().</span><span class="nf">get_conn</span><span class="p">()</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="n">tls_config</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="nf">__get_tls_config</span><span class="p">()</span>
+		<span class="k">return</span> <span class="nc">APIClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">docker_url</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">api_version</span><span class="p">,</span> <span class="n">tls</span><span class="o">=</span><span class="n">tls_config</span><span class="p">)</span>
+</code></pre></div></div>
+<ul>
+  <li><a href="https://github.com/apache/airflow/blob/providers-docker/2.5.0/airflow/providers/docker/operators/docker.py#L359-L390">airflow/airflow/providers/docker/operators/docker.py at providers-docker/2.5.0 · apache/airflow · GitHub</a></li>
+</ul>
+
+<p>로직 자체는 이미지를 pull해야하는 경우(force_pull이거나, 이미지가 존재하지 않는 경우) 이미지를 pull하고 run 한다. 정도로 간단하다.</p>
+
+<p>그런데 위 코드에서 주목할만한 점은 execute()을 진입하자마자 docker client(코드에서 <code class="language-plaintext highlighter-rouge">self.cli</code>)를 <code class="language-plaintext highlighter-rouge">_get_cli()</code> 함수를 통해 초기화한다.<br>
+그리고 <code class="language-plaintext highlighter-rouge">_get_cli()</code> 함수를 살펴보면, docker_conn_id 가 있는 경우 DockerHook을 이용해서 클라이언트를 초기화한다.<br>
+이때 docker_conn_id는 private registry에 접근할때의 인증정보를 포함하고 있는 객체이다.</p>
+
+<blockquote>
+  <p>If a login to a private registry is required prior to pulling the image, a Docker connection needs to be configured in Airflow and the connection ID be provided with the parameter <code class="language-plaintext highlighter-rouge">docker_conn_id</code>.</p>
+</blockquote>
+
+<p>서비스에서는 private registry에 접근하기 때문에 docker_conn_id를 설정하여 사용하고 있었고, 그렇기 때문에 <code class="language-plaintext highlighter-rouge">_get_cli()</code>에서 해당 분기를 타게 된다.</p>
+
+<p>그렇다면 DockerHook 클래스의 <code class="language-plaintext highlighter-rouge">get_conn()</code> 함수를 더 살펴보자. 아래는 해당 함수 전문이다.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">get_conn</span><span class="p">(</span><span class="n">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">APIClient</span><span class="p">:</span>
+	<span class="n">client</span> <span class="o">=</span> <span class="nc">APIClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">__base_url</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">__version</span><span class="p">,</span> <span class="n">tls</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">__tls</span><span class="p">)</span>
+	<span class="n">self</span><span class="p">.</span><span class="nf">__login</span><span class="p">(</span><span class="n">client</span><span class="p">)</span>
+	<span class="k">return</span> <span class="n">client</span>
+
+
+<span class="k">def</span> <span class="nf">__login</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">client</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+	<span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">debug</span><span class="p">(</span><span class="sh">'</span><span class="s">Logging into Docker</span><span class="sh">'</span><span class="p">)</span>
+	<span class="k">try</span><span class="p">:</span>
+		<span class="n">client</span><span class="p">.</span><span class="nf">login</span><span class="p">(</span>
+			<span class="n">username</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">__username</span><span class="p">,</span>
+			<span class="n">password</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">__password</span><span class="p">,</span>
+			<span class="n">registry</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">__registry</span><span class="p">,</span>
+			<span class="n">email</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">__email</span><span class="p">,</span>
+			<span class="n">reauth</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">__reauth</span><span class="p">,</span>
+		<span class="p">)</span>
+		<span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">debug</span><span class="p">(</span><span class="sh">'</span><span class="s">Login successful</span><span class="sh">'</span><span class="p">)</span>
+	<span class="k">except</span> <span class="n">APIError</span> <span class="k">as</span> <span class="n">docker_error</span><span class="p">:</span>
+		<span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">error</span><span class="p">(</span><span class="sh">'</span><span class="s">Docker login failed: %s</span><span class="sh">'</span><span class="p">,</span> <span class="nf">str</span><span class="p">(</span><span class="n">docker_error</span><span class="p">))</span>
+		<span class="k">raise</span> <span class="nc">AirflowException</span><span class="p">(</span><span class="sa">f</span><span class="sh">'</span><span class="s">Docker login failed: </span><span class="si">{</span><span class="n">docker_error</span><span class="si">}</span><span class="sh">'</span><span class="p">)</span>
+</code></pre></div></div>
+<ul>
+  <li><a href="https://github.com/apache/airflow/blob/providers-docker/2.5.0/airflow/providers/docker/hooks/docker.py#L88-L106">airflow/airflow/providers/docker/hooks/docker.py at providers-docker/2.5.0 · apache/airflow · GitHub</a></li>
+</ul>
+
+<p>놀랍게도 클라이언트를 생성한 이후에 즉시 로그인을 하는 것을 확인할 수 있다!<br>
+그리고 <code class="language-plaintext highlighter-rouge">__login()</code> 함수를 따라가다보니 에러발생시 <code class="language-plaintext highlighter-rouge">Docker login failed</code> 라는 <a href="#%EB%AC%B8%EC%A0%9C-%EC%83%81%ED%99%A9-%EB%8B%B9%EC%8B%9C-%EB%A1%9C%EA%B7%B8">문제 상황 당시 로그</a> 에서 봤던 익숙한 문구가 눈에 띈다.</p>
+
+<p>결국 소스 코드를 살펴봤을때,<br>
+<strong>docker client 생성 시점에 로그인을 시도하고, 로그인이 실패하면서, 로컬 이미지의 존재 여부는 조회조차 하지 못한채 실패하는 것이었다.</strong></p>
+
+<h2 id="execute-함수-오버라이딩을-통한-해결">execute() 함수 오버라이딩을 통한 해결</h2>
+
+<p>결국 우리가 필요한 것은, 로컬의 이미지를 조회하고, 없는 경우에만 이미지를 pull하면 된다.<br>
+따라서 images API 호출 시점의 docker client는 로그인이 필요하지 않고, pull API 호출 시점의 docker client는 로그인이 필요하다.<br>
+그런데 위 execute() 함수의 구현 상 docker client(<code class="language-plaintext highlighter-rouge">self.cli</code>)를 중간에 주입할 수가 없는 구조이기 때문에 아래와 같이 execute() 함수 자체를 오버라이딩하는 방식으로 해결하였다.</p>
+
+<ol>
+  <li>images API 호출 시점의 docker client는 로그인을 하지 않은 상태의 client 생성</li>
+  <li>images API 호출 이후~ pull API 호출 직전에 client 로그인 수행</li>
+  <li>그 외의 로직은 동일</li>
+</ol>
+
+<p>위와 같은 요구사항을 반영하여 구현한 전문은 아래와 같다.(DockerOperator를 상속한 LazyLoginDockerOperator)</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="n">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="n">airflow.providers.docker.operators.docker</span> <span class="kn">import</span> <span class="n">DockerOperator</span>
+<span class="kn">from</span> <span class="n">docker</span> <span class="kn">import</span> <span class="n">APIClient</span><span class="p">,</span> <span class="n">tls</span>
+
+<span class="k">class</span> <span class="nc">LazyLoginDockerOperator</span><span class="p">(</span><span class="n">DockerOperator</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="n">self</span><span class="p">.</span><span class="n">cli</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="nf">_get_cli</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">self</span><span class="p">.</span><span class="n">cli</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="nc">Exception</span><span class="p">(</span><span class="sh">"</span><span class="s">The </span><span class="sh">'</span><span class="s">cli</span><span class="sh">'</span><span class="s"> should be initialized before!</span><span class="sh">"</span><span class="p">)</span>
+
+        <span class="c1"># Pull the docker image if `force_pull` is set or image does not exist locally
+</span>        
+        <span class="k">if</span> <span class="n">self</span><span class="p">.</span><span class="n">force_pull</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">self</span><span class="p">.</span><span class="n">cli</span><span class="p">.</span><span class="nf">images</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">image</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">self</span><span class="p">.</span><span class="n">docker_conn_id</span><span class="p">:</span>
+                <span class="n">self</span><span class="p">.</span><span class="n">cli</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="nf">get_hook</span><span class="p">().</span><span class="nf">get_conn</span><span class="p">()</span>
+
+            <span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">info</span><span class="p">(</span><span class="sh">'</span><span class="s">Pulling docker image %s</span><span class="sh">'</span><span class="p">,</span> <span class="n">self</span><span class="p">.</span><span class="n">image</span><span class="p">)</span>
+            <span class="n">latest_status</span> <span class="o">=</span> <span class="p">{}</span>
+            
+            <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">self</span><span class="p">.</span><span class="n">cli</span><span class="p">.</span><span class="nf">pull</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">image</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">decode</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nf">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">info</span><span class="p">(</span><span class="sh">"</span><span class="s">%s</span><span class="sh">"</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="k">if</span> <span class="nf">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="sh">'</span><span class="s">status</span><span class="sh">'</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+                    <span class="n">output_status</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="sh">"</span><span class="s">status</span><span class="sh">"</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="sh">'</span><span class="s">id</span><span class="sh">'</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+                        <span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">info</span><span class="p">(</span><span class="sh">"</span><span class="s">%s</span><span class="sh">"</span><span class="p">,</span> <span class="n">output_status</span><span class="p">)</span>
+                        <span class="k">continue</span>
+
+                    <span class="n">output_id</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="sh">"</span><span class="s">id</span><span class="sh">"</span><span class="p">]</span>
+
+                    <span class="k">if</span> <span class="n">latest_status</span><span class="p">.</span><span class="nf">get</span><span class="p">(</span><span class="n">output_id</span><span class="p">)</span> <span class="o">!=</span> <span class="n">output_status</span><span class="p">:</span>
+                        <span class="n">self</span><span class="p">.</span><span class="n">log</span><span class="p">.</span><span class="nf">info</span><span class="p">(</span><span class="sh">"</span><span class="s">%s: %s</span><span class="sh">"</span><span class="p">,</span> <span class="n">output_id</span><span class="p">,</span> <span class="n">output_status</span><span class="p">)</span>
+                        <span class="n">latest_status</span><span class="p">[</span><span class="n">output_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">output_status</span>
+        <span class="k">return</span> <span class="n">self</span><span class="p">.</span><span class="nf">_run_image</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_get_cli</span><span class="p">(</span><span class="n">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">APIClient</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nc">APIClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">docker_url</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="n">api_version</span><span class="p">,</span> <span class="n">tls</span><span class="o">=</span><span class="n">self</span><span class="p">.</span><span class="nf">__get_tls_config</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">__get_tls_config</span><span class="p">(</span><span class="n">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tls</span><span class="p">.</span><span class="n">TLSConfig</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">self</span><span class="p">.</span><span class="nf">_DockerOperator__get_tls_config</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>위와 같이 변경한 LazyLoginDockerOperator를 문제가 된 DAG에 적용하였고, 이후에 동일한 registry 장애가 발생했을때 해당 DAG는 영향을 받지 않고 정상수행됨을 확인했다!<br>
+이로써 외부 요인인 registry 장애가 발생했을 때 서비스 배치로의 장애가 전파되는 걸 막을 수 있었고, 장애 대응으로 인한 공수 또한 절감할 수 있었다.</p>
+
+<h2 id="이후-버전에서-해결되었을까">이후 버전에서 해결되었을까</h2>
+
+<p>사실 문제 발생 당시에 이미지 존재 여부와 무관하게 실패하는 것이 정상동작은 아니라고 생각하여 bug fix가 있었는지를 찾아보았으나, 딱히 올라오진 않았고, 당시 최신버전에서도 문제가 해결되지 않은 것으로 확인해서 위와 같이 어쩔 수 없이 직접 오버라이딩하는 방식으로 해결하였다.<br>
+그리고 현재(2024년 10월) 기준 최신 버전인 providers-airflow 3.14.0 버전에서도 여전히 동일한 이슈가 발생하는 것으로 확인된다.</p>
+
+<p><a href="https://github.com/apache/airflow/pull/28363">make docker operators always use `DockerHook` for API calls by Taragolis · Pull Request #28363 · apache/airflow · GitHub</a><br>
+위 PR에서 docker client를 획득하는 로직이 변경되긴 했으나, 단순히 생성 시점이 execute() 호출 시점이 아닌 self.cli 최초 호출 시점에 최초 생성된다는 점만 바뀌었을뿐, 여전히 생성 시점에 로그인을 하는 로직은 바뀌지 않은듯하고, 이 로직이 현재 최신 버전에서도 동일하다.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># DockerHook.api_client()의 일부 
+</span><span class="k">if</span> <span class="n">self</span><span class="p">.</span><span class="n">docker_conn_id</span><span class="p">:</span>
+	<span class="c1"># Obtain connection and try to login to Container Registry only if ``docker_conn_id`` set.
+</span>	<span class="n">self</span><span class="p">.</span><span class="nf">__login</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">self</span><span class="p">.</span><span class="nf">get_connection</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">docker_conn_id</span><span class="p">))</span>
+</code></pre></div></div>
+<ul>
+  <li><a href="https://github.com/apache/airflow/blob/providers-docker/3.14.0/airflow/providers/docker/hooks/docker.py#L151-L153">airflow/airflow/providers/docker/hooks/docker.py at providers-docker/3.14.0 · apache/airflow · GitHub</a></li>
+</ul>
+
+<p>따라서 현재 기준 최신 버전에서도 동일한 이슈는 여전히 발생하기 때문에, 단순 버전업만으로는 위와 같은 문제에 대한 해결은 어려워보인다.</p>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li><a href="https://github.com/apache/airflow/tree/providers-docker/2.5.0/airflow/providers/docker">airflow/airflow/providers/docker at providers-docker/2.5.0 · apache/airflow · GitHub</a></li>
+  <li><a href="https://airflow.apache.org/docs/apache-airflow-providers-docker/stable/_api/airflow/providers/docker/operators/docker/index.html">airflow.providers.docker.operators.docker — apache-airflow-providers-docker Documentation</a></li>
+  <li><a href="https://github.com/apache/airflow/pull/28363">make docker operators always use `DockerHook` for API calls by Taragolis · Pull Request #28363 · apache/airflow · GitHub</a></li>
+</ul>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/tags/#airflow" class="page__taxonomy-item" rel="tag">Airflow</a><span class="sep">, </span>
+    
+      
+      
+      <a href="/tags/#docker" class="page__taxonomy-item" rel="tag">Docker</a>
+    
+    </span>
+  </p>
+
+
+
+
+  
+
+
+  
+  
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-folder-open" aria-hidden="true"></i> Categories: </strong>
+    <span itemprop="keywords">
+    
+      
+      
+      <a href="/categories/#airflow" class="page__taxonomy-item" rel="tag">Airflow</a>
+    
+    </span>
+  </p>
+
+
+        
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time datetime="2024-10-13">October 13, 2024</time></p>
+
+
+      </footer>
+
+      <section class="page__share">
+  
+    <h4 class="page__share-title">Share on</h4>
+  
+
+  <a href="https://twitter.com/intent/tweet?text=Airflow+DockerOperator%EC%9D%98+Private+registry+%EC%9E%A5%EC%95%A0%EC%A0%84%ED%8C%8C+%EB%B0%A9%EC%A7%80%28LazyLoginDockerOperator+%EA%B5%AC%ED%98%84%EA%B8%B0%29%20https%3A%2F%2Fdreamsh19.github.io%2Fairflow%2FAirflow-DockerOperator%25EC%259D%2598-Private-registry-%25EC%259E%25A5%25EC%2595%25A0%25EC%25A0%2584%25ED%258C%258C-%25EB%25B0%25A9%25EC%25A7%2580%28LazyLoginDockerOperator-%25EA%25B5%25AC%25ED%2598%2584%25EA%25B8%25B0%29%2F" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fdreamsh19.github.io%2Fairflow%2FAirflow-DockerOperator%25EC%259D%2598-Private-registry-%25EC%259E%25A5%25EC%2595%25A0%25EC%25A0%2584%25ED%258C%258C-%25EB%25B0%25A9%25EC%25A7%2580%28LazyLoginDockerOperator-%25EA%25B5%25AC%25ED%2598%2584%25EA%25B8%25B0%29%2F" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fdreamsh19.github.io%2Fairflow%2FAirflow-DockerOperator%25EC%259D%2598-Private-registry-%25EC%259E%25A5%25EC%2595%25A0%25EC%25A0%2584%25ED%258C%258C-%25EB%25B0%25A9%25EC%25A7%2580%28LazyLoginDockerOperator-%25EA%25B5%25AC%25ED%2598%2584%25EA%25B8%25B0%29%2F" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
+
+      
+  <nav class="pagination">
+    
+      <a href="/java/Java%EC%9D%98-Integer%EB%8F%84-pool%EC%9D%B4-%EC%9E%88%EB%8B%A4/" class="pagination--pager" title="Java의 Integer도 Pool이 있다
+">Previous</a>
+    
+    
+      <a href="/git/Git-commit-hash%EB%8A%94-%EC%96%B4%EB%96%BB%EA%B2%8C-%EB%A7%8C%EB%93%A4%EC%96%B4%EC%A7%88%EA%B9%8C/" class="pagination--pager" title="Git commit hash는 어떻게 만들어질까
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+      <div class="page__comments">
+  
+  
+      <h4 class="page__comments-title">Leave a comment</h4>
+      <section id="disqus_thread"></section>
+    
+</div>
+
+    
+  </article>
+
+  
+  
+</div>
+
+    </div>
+
+    
+      <div class="search-content">
+        <div class="search-content__inner-wrap">
+<form class="search-content__form" onkeydown="return event.key != 'Enter';">
+    <label class="sr-only" for="search">
+      Enter your search term...
+    </label>
+    <input type="search" id="search" class="search-input" tabindex="-1" placeholder="Enter your search term...">
+  </form>
+  <div id="results" class="results"></div>
+</div>
+
+      </div>
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+      <li><strong>Follow:</strong></li>
+    
+
+    
+      
+        
+      
+        
+      
+        
+          <li><a href="https://github.com/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          <li><a href="https://www.linkedin.com/in/dreamsh19" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i> LinkedIn</a></li>
+        
+      
+    
+
+    <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+  </ul>
+</div>
+
+<div class="page__footer-copyright">© 2025 서버 개발자. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+<script src="/assets/js/lunr/lunr.min.js"></script>
+<script src="/assets/js/lunr/lunr-store.js"></script>
+<script src="/assets/js/lunr/lunr-en.js"></script>
+
+
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LM91QEFQ4D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-LM91QEFQ4D', { 'anonymize_ip': false});
+</script>
+
+
+
+
+
+
+    
+  <script>
+    var disqus_config = function () {
+      this.page.url = "https://dreamsh19.github.io/airflow/Airflow-DockerOperator%EC%9D%98-Private-registry-%EC%9E%A5%EC%95%A0%EC%A0%84%ED%8C%8C-%EB%B0%A9%EC%A7%80(LazyLoginDockerOperator-%EA%B5%AC%ED%98%84%EA%B8%B0)/";  /* Replace PAGE_URL with your page's canonical URL variable */
+      this.page.identifier = "/airflow/Airflow-DockerOperator의-Private-registry-장애전파-방지(LazyLoginDockerOperator-구현기)"; /* Replace PAGE_IDENTIFIER with your page's unique identifier variable */
+    };
+    (function() { /* DON'T EDIT BELOW THIS LINE */
+      var d = document, s = d.createElement('script');
+      s.src = 'https://dreamsh19-github-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', +new Date());
+      (d.head || d.body).appendChild(s);
+    })();
+  </script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+</noscript>
+
+
+  
+
+
+
+
+
+  </body>
+</html>
